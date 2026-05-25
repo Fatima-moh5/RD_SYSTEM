@@ -1,0 +1,277 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="rd-list-page">
+
+    <div class="rd-page-header d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3">
+
+        <div>
+            <h2 class="rd-page-title">Daily Report History</h2>
+
+            <p class="rd-page-subtitle">
+                {% if can_view_all %}
+                    Viewing reports according to your management permissions.
+                {% else %}
+                    Viewing your own reports only.
+                {% endif %}
+            </p>
+        </div>
+
+        <div class="d-flex gap-2">
+            <a href="{% url 'daily_report_create' %}" class="btn btn-rd-primary">
+                <i class="bi bi-plus-circle me-1"></i>
+                New Report
+            </a>
+        </div>
+
+    </div>
+
+    <div class="rd-card rd-filter-card mb-4">
+
+        <div class="card-body">
+
+            <form method="get">
+
+                <div class="row g-3 align-items-end">
+
+                    <div class="col-md-3">
+                        <label class="form-label">Period</label>
+
+                        <select name="filter" class="form-select">
+                            <option value="">All</option>
+
+                            <option value="week"
+                                {% if filter_type == "week" %}
+                                    selected
+                                {% endif %}
+                            >
+                                This Week
+                            </option>
+
+                            <option value="month"
+                                {% if filter_type == "month" %}
+                                    selected
+                                {% endif %}
+                            >
+                                This Month
+                            </option>
+
+                        </select>
+                    </div>
+
+                    <div class="col-md-3">
+                        <label class="form-label">Project</label>
+
+                        <select name="project" class="form-select">
+
+                            <option value="">All Projects</option>
+
+                            {% for project in projects %}
+
+                                <option
+                                    value="{{ project.project_id }}"
+                                    {% if selected_project|stringformat:"s" == project.project_id|stringformat:"s" %}
+                                        selected
+                                    {% endif %}
+                                >
+                                    {{ project.project__name }}
+                                </option>
+
+                            {% endfor %}
+
+                        </select>
+                    </div>
+
+                    <div class="col-md-3">
+
+                        <label class="form-label">Status</label>
+
+                        <select name="status" class="form-select">
+
+                            <option value="">All Statuses</option>
+
+                            <option value="draft"
+                                {% if selected_status == "draft" %}
+                                    selected
+                                {% endif %}
+                            >
+                                Draft
+                            </option>
+
+                            <option value="submitted"
+                                {% if selected_status == "submitted" %}
+                                    selected
+                                {% endif %}
+                            >
+                                Submitted
+                            </option>
+
+                            <option value="reviewed"
+                                {% if selected_status == "reviewed" %}
+                                    selected
+                                {% endif %}
+                            >
+                                Reviewed
+                            </option>
+
+                        </select>
+
+                    </div>
+
+                    <div class="col-md-3 d-flex gap-2">
+
+                        <button type="submit" class="btn btn-rd-primary w-100">
+                            Filter
+                        </button>
+
+                        <a
+                            href="{% url 'daily_report_list' %}"
+                            class="btn btn-rd-outline w-100"
+                        >
+                            Reset
+                        </a>
+
+                    </div>
+
+                </div>
+
+            </form>
+
+        </div>
+
+    </div>
+
+    <div class="rd-card rd-table-card">
+
+        <div class="card-body p-0">
+
+            <div class="table-responsive">
+
+                <table class="table rd-table table-hover align-middle mb-0">
+
+                    <thead>
+
+                        <tr>
+                            <th>Date</th>
+                            <th>Project</th>
+                            <th>Created By</th>
+                            <th>Status</th>
+                            <th>Weather</th>
+                            <th>Last Updated</th>
+                            <th class="text-end">Actions</th>
+                        </tr>
+
+                    </thead>
+
+                    <tbody>
+
+                        {% for report in reports %}
+
+                            <tr>
+
+                                <td>
+                                    {{ report.reference_date }}
+                                </td>
+
+                                <td>
+                                    {{ report.project }}
+                                </td>
+
+                                <td>
+
+                                    {% if report.created_by %}
+                                        {{ report.created_by.username }}
+                                    {% else %}
+                                        -
+                                    {% endif %}
+
+                                </td>
+
+                                <td>
+
+                                    {% if report.status == "draft" %}
+                                        <span class="badge bg-secondary">
+                                            Draft
+                                        </span>
+
+                                    {% elif report.status == "submitted" %}
+                                        <span class="badge bg-primary">
+                                            Submitted
+                                        </span>
+
+                                    {% elif report.status == "reviewed" %}
+                                        <span class="badge bg-success">
+                                            Reviewed
+                                        </span>
+
+                                    {% endif %}
+
+                                </td>
+
+                                <td>
+
+                                    {{ report.weather_condition }}
+
+                                    {% if report.temperature %}
+                                        / {{ report.temperature }}°C
+                                    {% endif %}
+
+                                </td>
+
+                                <td>
+                                    {{ report.updated_at|date:"Y-m-d H:i" }}
+                                </td>
+
+                                <td class="text-end">
+
+                                    <div class="d-flex justify-content-end gap-2">
+
+                                        <a
+                                            href="{% url 'daily_report_edit' report.pk %}"
+                                            class="btn btn-sm btn-rd-outline"
+                                        >
+                                            View / Edit
+                                        </a>
+
+                                        <a
+                                            href="{% url 'daily_report_print' report.pk %}"
+                                            target="_blank"
+                                            class="btn btn-sm btn-rd-soft"
+                                        >
+                                            Print
+                                        </a>
+
+                                    </div>
+
+                                </td>
+
+                            </tr>
+
+                        {% empty %}
+
+                            <tr>
+
+                                <td colspan="7" class="text-center py-5 text-muted">
+
+                                    No reports found.
+
+                                </td>
+
+                            </tr>
+
+                        {% endfor %}
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}

@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+
+{% block title %}Print Daily Report{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+
+    <div class="d-flex justify-content-between align-items-center mb-4 no-print">
+        <a href="{% url 'daily_report_list' %}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-2"></i>
+            Back
+        </a>
+
+        <button onclick="window.print()" class="btn btn-rd-primary">
+            <i class="bi bi-printer me-2"></i>
+            Print
+        </button>
+    </div>
+
+    <div class="card p-4">
+        <h2>Daily Site Report</h2>
+        <hr>
+
+        <p><strong>Date:</strong> {{ report.reference_date }}</p>
+        <p><strong>Project:</strong> {{ report.project }}</p>
+        <p><strong>Created By:</strong> {{ report.created_by }}</p>
+        <p><strong>Status:</strong> {{ report.status }}</p>
+        <p><strong>Weather:</strong> {{ report.weather_condition }} / {{ report.temperature }}°C</p>
+    </div>
+
+</div>
+
+<style>
+@media print {
+    .no-print {
+        display: none !important;
+    }
+
+    body {
+        background: white !important;
+    }
+
+    .card {
+        border: none !important;
+        box-shadow: none !important;
+    }
+}
+</style>
+{% endblock %}

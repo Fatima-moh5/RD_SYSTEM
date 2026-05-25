@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard | Raffoul Development{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+
+    <div class="dashboard-header mb-4">
+        <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3">
+            <div>
+                <h1 class="h3 fw-bold mb-1">Site Engineer Dashboard</h1>
+                <p class="mb-0 text-white-50">
+                    Welcome, {{ request.user.username }}. Manage your assigned site operations from here.
+                </p>
+            </div>
+
+            <div class="text-lg-end">
+                <span class="badge bg-light text-dark">
+                    Role: Site Engineer
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+
+        <div class="col-md-6 col-xl-3">
+            <div class="card module-card">
+                <div class="card-body p-4">
+                    <div class="module-icon icon-blue">
+                        <i class="bi bi-clipboard2-check"></i>
+                    </div>
+                    <h5 class="fw-bold">Create Daily Report</h5>
+                    <p class="text-muted mb-4">
+                        Create today’s site report including active works, blocked issues, resources, and visits.
+                    </p>
+                    <a href="{% url 'daily_report_create' %}" class="btn btn-rd-primary w-100">
+                        Create Report
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6 col-xl-3">
+            <div class="card module-card">
+                <div class="card-body p-4">
+                    <div class="module-icon icon-green">
+                        <i class="bi bi-clock-history"></i>
+                    </div>
+                    <h5 class="fw-bold">My Report History</h5>
+                    <p class="text-muted mb-4">
+                        Review, edit, print, and follow your previous daily site reports.
+                    </p>
+                    <a href="{% url 'daily_report_list' %}" class="btn btn-outline-secondary w-100">
+                        Open Reports
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6 col-xl-3">
+            <div class="card module-card">
+                <div class="card-body p-4">
+                    <div class="module-icon icon-gold">
+                        <i class="bi bi-rulers"></i>
+                    </div>
+                    <h5 class="fw-bold">Quantities Calculation</h5>
+                    <p class="text-muted mb-4">
+                        Track executed quantities by master code, floor, unit, and project.
+                    </p>
+                    <button class="btn btn-outline-secondary w-100" disabled>
+                        Coming Soon
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6 col-xl-3">
+            <div class="card module-card">
+                <div class="card-body p-4">
+                    <div class="module-icon icon-purple">
+                        <i class="bi bi-exclamation-triangle"></i>
+                    </div>
+                    <h5 class="fw-bold">Blocked Issues</h5>
+                    <p class="text-muted mb-4">
+                        Follow issues submitted to the project manager and track their status.
+                    </p>
+                    <button class="btn btn-outline-secondary w-100" disabled>
+                        Coming Soon
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+</div>
+{% endblock %}

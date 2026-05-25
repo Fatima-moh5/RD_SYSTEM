@@ -1,0 +1,819 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ page_title|default:"Daily Site Report" }}</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="{% static 'reports/css/style.css' %}">
+</head>
+
+<body>
+<div class="container-fluid py-3 px-lg-4">
+    <div class="page-shell">
+        <div class="report-header mb-3">
+            <div class="d-flex flex-column flex-xl-row justify-content-between align-items-xl-center gap-3">
+
+                <div class="d-flex align-items-center gap-3">
+
+                    <div class="brand-logo">
+                        <img src="{% static 'reports/images/logord.png' %}" alt="RD Logo">
+                    </div>
+
+                    <div>
+                        <h1 class="report-title">Daily Site Report</h1>
+                        <div class="report-subtitle">
+                            Operational daily site reporting form
+                        </div>
+                    </div>
+
+                </div>
+
+                    <div class="header-meta">
+
+                        <a href="{% url 'dashboard_home' %}" class="meta-box text-decoration-none">
+                            <div class="meta-label">Navigation</div>
+                            <div class="meta-value">
+                                <i class="bi bi-arrow-left me-1"></i>
+                                Dashboard
+                            </div>
+                        </a>
+
+                        <div class="meta-box">
+                            <div class="meta-label">User / Group</div>
+                            <div class="meta-value">
+                                {{ request.user.username }} /
+                                {% if request.user.groups.all %}
+                                    {{ request.user.groups.all.0.name }}
+                                {% else %}
+                                    Not assigned
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="meta-box">
+                            <div class="meta-label">Calendar</div>
+                            <div class="meta-value">
+                                <i class="bi bi-calendar3 me-1"></i>
+                                {% now "d/m/Y - H:i" %}
+                            </div>
+                        </div>
+
+                    </div>
+
+            </div>
+        </div>
+
+        {% if messages %}
+            <div class="mb-3">
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.tags|default:'info' }} shadow-sm">{{ message }}</div>
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+
+            {% if form.non_field_errors %}
+                <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+            {% endif %}
+
+            <!-- PROJECT + WEATHER -->
+            <div class="row g-3 mb-3">
+                <div class="col-12 col-lg-4">
+                    <div class="section-card h-100">
+                        <div class="section-head">
+                            <div class="section-icon"><i class="bi bi-building"></i></div>
+                            <span class="section-number">01</span>
+                            <h2 class="section-title">Project Information</h2>
+                        </div>
+
+                        <div class="section-body">
+                            <label class="form-label">Project Name</label>
+                            {{ form.project }}
+                            {{ form.project.errors }}
+
+                            <div class="field-help mt-2">
+                                Project will be assigned automatically based on the logged-in site engineer.
+                            </div>
+
+                            <div class="d-none">
+                                {{ form.reference_date }}
+                                {{ form.status }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-12 col-lg-8">
+                    <div class="section-card h-100">
+                        <div class="section-head">
+                            <div class="section-icon"><i class="bi bi-cloud-sun"></i></div>
+                            <span class="section-number">02</span>
+                            <h2 class="section-title">Weather Information</h2>
+                        </div>
+
+                        <div class="section-body">
+                            <div class="row g-3 align-items-end">
+                                <div class="col-12 col-md-4">
+                                    <label class="form-label">{{ form.weather_condition.label }}</label>
+                                    {{ form.weather_condition }}
+                                </div>
+
+                                <div class="col-12 col-md-3">
+                                    <label class="form-label">Temperature (°C)</label>
+                                    {{ form.temperature }}
+                                </div>
+
+                                <div class="col-12 col-md-3">
+                                    <label class="form-label">{{ form.weather_source.label }}</label>
+                                    {{ form.weather_source }}
+                                </div>
+
+                                <div class="col-12 col-md-2">
+                                    <div class="form-check mb-2">
+                                        {{ form.weather_confirmed }}
+                                        <label class="form-check-label">Confirmed</label>
+                                    </div>
+                                </div>
+
+                                <div class="col-12">
+                                    <label class="form-label">{{ form.general_notes.label }}</label>
+                                    {{ form.general_notes }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- WORK EXECUTION -->
+            <div class="section-card mb-3">
+                <div class="section-head">
+                    <div class="section-icon"><i class="bi bi-clipboard-data"></i></div>
+                    <span class="section-number">03</span>
+                    <h2 class="section-title">Work Execution Status</h2>
+                </div>
+
+                <div class="section-body">
+                    <div class="row g-3">
+
+                        <!-- ACTIVE WORKS -->
+                        <div class="col-12 col-xl-6">
+                            <div class="work-panel">
+                                <div class="subsection-heading green d-flex justify-content-between align-items-center">
+                                    <div><span class="status-dot green"></span> Active Works</div>
+                                    <button type="button" class="btn btn-sm btn-rd-outline" data-formset-add="work">
+                                        <i class="bi bi-plus-circle me-1"></i>Add Active Work
+                                    </button>
+                                </div>
+
+                                {{ work_progress_formset.management_form }}
+
+                                <div data-formset-container="work">
+                                    {% for row in work_progress_formset %}
+                                        <div class="entry-card mb-3" data-formset-row>
+                                            {% for hidden in row.hidden_fields %}{{ hidden }}{% endfor %}
+
+                                            <div class="row g-3">
+                                                <div class="col-12 col-lg-5">
+                                                    <label class="form-label">Master Code</label>
+                                                    <div class="d-none">{{ row.master_code }}</div>
+                                                    <div class="master-code-picker">
+                                                        <input type="text" class="form-control master-code-display" data-selected-code-display placeholder="No code selected" readonly>
+                                                        <button type="button" class="btn btn-sm btn-rd-outline master-code-button" data-bs-toggle="modal" data-bs-target="#generateCodeModal" data-open-master-code-modal>
+                                                            <i class="bi bi-search me-1"></i>Search
+                                                        </button>
+                                                    </div>
+                                                </div>
+
+                                                <div class="col-12 col-lg-5">
+                                                    <label class="form-label">Code Description</label>
+                                                    {{ row.description }}
+                                                </div>
+
+                                                <div class="col-12 col-lg-2">
+                                                    <label class="form-label">Floor</label>
+                                                    {{ row.project_area }}
+                                                </div>
+
+                                                <div class="col-6 col-lg-2">
+                                                    <label class="form-label">Quantity</label>
+                                                    {{ row.quantity }}
+                                                </div>
+
+                                                <div class="col-6 col-lg-2">
+                                                    <label class="form-label">Unit</label>
+                                                    {{ row.unit }}
+                                                </div>
+
+                                                <div class="col-12 col-lg-8">
+                                                    <label class="form-label">Notes</label>
+                                                    {{ row.notes }}
+                                                </div>
+
+                                                <div class="col-12">
+                                                    <div class="p-2 border rounded bg-light rd-attachment-box">
+                                                        <label class="form-label mb-1">
+                                                            <i class="bi bi-paperclip me-1"></i>Active Work Attachments
+                                                        </label>
+                                                        <input type="file" name="work_progress_attachments_{{ row.prefix }}" class="form-control form-control-sm" multiple>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- BLOCKED ISSUES -->
+                        <div class="col-12 col-xl-6">
+                            <div class="work-panel">
+                                <div class="subsection-heading red d-flex justify-content-between align-items-center">
+                                    <div><span class="status-dot red"></span> Blocked Issues</div>
+                                    <button type="button" class="btn btn-sm btn-rd-outline" data-formset-add="blocked">
+                                        <i class="bi bi-plus-circle me-1"></i>Add Blocked Issue
+                                    </button>
+                                </div>
+
+                                {{ blocked_issue_formset.management_form }}
+
+                                <div data-formset-container="blocked">
+                                    {% for row in blocked_issue_formset %}
+                                        <div class="entry-card mb-3" data-formset-row>
+                                            {% for hidden in row.hidden_fields %}{{ hidden }}{% endfor %}
+
+                                            <div class="row g-3">
+                                                <div class="col-12 col-lg-5">
+                                                    <label class="form-label">Master Code</label>
+                                                    <div class="d-none">{{ row.master_code }}</div>
+                                                    <div class="master-code-picker">
+                                                        <input type="text" class="form-control master-code-display" data-selected-code-display placeholder="No code selected" readonly>
+                                                        <button type="button" class="btn btn-sm btn-rd-outline master-code-button" data-bs-toggle="modal" data-bs-target="#generateCodeModal" data-open-master-code-modal>
+                                                            <i class="bi bi-search me-1"></i>Search
+                                                        </button>
+                                                    </div>
+                                                </div>
+
+                                                <div class="col-12 col-lg-7">
+                                                    <label class="form-label">Issue</label>
+                                                    {{ row.issue }}
+                                                </div>
+
+                                                <div class="col-12 col-lg-6">
+                                                    <label class="form-label">Reason</label>
+                                                    {{ row.reason }}
+                                                </div>
+
+                                                <div class="col-12 col-lg-6">
+                                                    <label class="form-label">Suggested Solution</label>
+                                                    {{ row.suggested_solution }}
+                                                </div>
+
+                                                <div class="col-12">
+                                                    <div class="p-2 border rounded bg-light rd-attachment-box">
+                                                        <label class="form-label mb-1">
+                                                            <i class="bi bi-paperclip me-1"></i>Blocked Issue Attachments
+                                                        </label>
+                                                        <input type="file" name="blocked_issue_attachments_{{ row.prefix }}" class="form-control form-control-sm" multiple>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+
+            <!-- OPERATIONAL SECTIONS -->
+            <div class="operations-grid mb-3">
+
+                <!-- SITE VISITS -->
+                <div class="operation-card">
+                    <div class="section-card compact-section">
+                        <div class="section-head d-flex justify-content-between align-items-center">
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="section-icon"><i class="bi bi-person-badge"></i></div>
+                                <span class="section-number">04</span>
+                                <h2 class="section-title mb-0">Site Visits</h2>
+                            </div>
+
+                            <button type="button" class="btn btn-sm btn-rd-outline" data-formset-add="visits">
+                                <i class="bi bi-plus-circle me-1"></i>Add
+                            </button>
+                        </div>
+
+                        <div class="section-body">
+                            {{ site_visit_formset.management_form }}
+
+                            <div data-formset-container="visits">
+                                {% for row in site_visit_formset %}
+                                    <div class="entry-card mb-3" data-formset-row>
+                                        {% for hidden in row.hidden_fields %}{{ hidden }}{% endfor %}
+
+                                        <label class="form-label">Visit Code</label>{{ row.visit_code }}
+                                        <label class="form-label mt-2">Visitor Name</label>{{ row.visitor_name }}
+                                        <label class="form-label mt-2">Visitor Entity / Company</label>{{ row.visitor_entity }}
+                                        <label class="form-label mt-2">Purpose</label>{{ row.purpose }}
+                                        <label class="form-label mt-2">Visit Time</label>{{ row.visit_time }}
+                                        <label class="form-label mt-2">Notes</label>{{ row.notes }}
+
+                                        <div class="mt-3 p-2 border rounded bg-light">
+                                            <label class="form-label mb-1">
+                                                <i class="bi bi-paperclip me-1"></i>Visit Attachments
+                                            </label>
+                                            <input type="file" name="site_visit_attachments_{{ row.prefix }}" class="form-control form-control-sm" multiple>
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- EQUIPMENT -->
+                <div class="operation-card">
+                    <div class="section-card compact-section">
+                        <div class="section-head d-flex justify-content-between align-items-center">
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="section-icon"><i class="bi bi-truck"></i></div>
+                                <span class="section-number">06</span>
+                                <h2 class="section-title mb-0">Equipment Usage</h2>
+                            </div>
+
+                            <button type="button" class="btn btn-sm btn-rd-outline" data-formset-add="equipment">
+                                <i class="bi bi-plus-circle me-1"></i>Add
+                            </button>
+                        </div>
+
+                        <div class="section-body">
+                            {{ equipment_formset.management_form }}
+
+                            <div data-formset-container="equipment">
+                                {% for row in equipment_formset %}
+                                    <div class="entry-card mb-3" data-formset-row>
+                                        {% for hidden in row.hidden_fields %}{{ hidden }}{% endfor %}
+
+                                        <label class="form-label">Master Code</label>
+                                        <div class="d-none">{{ row.master_code }}</div>
+                                        <div class="master-code-picker mb-2">
+                                            <input type="text" class="form-control master-code-display" data-selected-code-display placeholder="No code selected" readonly>
+                                            <button type="button" class="btn btn-sm btn-rd-outline master-code-button" data-bs-toggle="modal" data-bs-target="#generateCodeModal" data-open-master-code-modal>
+                                                <i class="bi bi-search me-1"></i>Search
+                                            </button>
+                                        </div>
+
+                                        <label class="form-label">Equipment</label>{{ row.equipment }}
+
+                                        <div class="row g-2 mt-1">
+                                            <div class="col-4"><label class="form-label">Qty</label>{{ row.quantity }}</div>
+                                            <div class="col-4"><label class="form-label">Working</label>{{ row.working_hours }}</div>
+                                            <div class="col-4"><label class="form-label">Idle</label>{{ row.idle_hours }}</div>
+                                        </div>
+
+                                        <label class="form-label mt-2">Notes</label>{{ row.notes }}
+
+                                        <div class="mt-3 p-2 border rounded bg-light">
+                                            <label class="form-label mb-1">
+                                                <i class="bi bi-paperclip me-1"></i>Equipment Attachments
+                                            </label>
+                                            <input type="file" name="equipment_attachments_{{ row.prefix }}" class="form-control form-control-sm" multiple>
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- MATERIALS -->
+                <div class="operation-card">
+                    <div class="section-card compact-section">
+                        <div class="section-head d-flex justify-content-between align-items-center">
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="section-icon"><i class="bi bi-box-seam"></i></div>
+                                <span class="section-number">07</span>
+                                <h2 class="section-title mb-0">Material Receipts</h2>
+                            </div>
+
+                            <button type="button" class="btn btn-sm btn-rd-outline" data-formset-add="materials">
+                                <i class="bi bi-plus-circle me-1"></i>Add
+                            </button>
+                        </div>
+
+                        <div class="section-body">
+                            {{ material_formset.management_form }}
+
+                            <div data-formset-container="materials">
+                                {% for row in material_formset %}
+                                    <div class="entry-card mb-3" data-formset-row>
+                                        {% for hidden in row.hidden_fields %}{{ hidden }}{% endfor %}
+
+                                        <label class="form-label">Master Code</label>
+                                        <div class="d-none">{{ row.master_code }}</div>
+                                        <div class="master-code-picker mb-2">
+                                            <input type="text" class="form-control master-code-display" data-selected-code-display placeholder="No code selected" readonly>
+                                            <button type="button" class="btn btn-sm btn-rd-outline master-code-button" data-bs-toggle="modal" data-bs-target="#generateCodeModal" data-open-master-code-modal>
+                                                <i class="bi bi-search me-1"></i>Search
+                                            </button>
+                                        </div>
+
+                                        <label class="form-label">Material Name</label>{{ row.material_name }}
+
+                                        <div class="row g-2 mt-1">
+                                            <div class="col-6"><label class="form-label">Quantity</label>{{ row.quantity }}</div>
+                                            <div class="col-6"><label class="form-label">Unit</label>{{ row.unit }}</div>
+                                        </div>
+
+                                        <label class="form-label mt-2">Supplier</label>{{ row.supplier }}
+                                        <label class="form-label mt-2">Delivery Note Number</label>{{ row.delivery_note_number }}
+                                        <label class="form-label mt-2">Notes</label>{{ row.notes }}
+
+                                        <div class="mt-3 p-2 border rounded bg-light">
+                                            <label class="form-label mb-1">
+                                                <i class="bi bi-paperclip me-1"></i>Material Attachments
+                                            </label>
+                                            <input type="file" name="material_attachments_{{ row.prefix }}" class="form-control form-control-sm" multiple>
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- WORKFORCE -->
+                <div class="operation-card workforce-wide">
+                    <div class="section-card compact-section">
+                        <div class="section-head d-flex justify-content-between align-items-center">
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="section-icon"><i class="bi bi-people-fill"></i></div>
+                                <span class="section-number">05</span>
+                                <h2 class="section-title mb-0">Workforce Entries</h2>
+                            </div>
+
+                            <button type="button" class="btn btn-sm btn-rd-outline" data-formset-add="workforce">
+                                <i class="bi bi-plus-circle me-1"></i>Add
+                            </button>
+                        </div>
+
+                        <div class="section-body">
+                            {{ workforce_formset.management_form }}
+
+                            <div data-formset-container="workforce">
+                                {% for row in workforce_formset %}
+                                    <div class="entry-card mb-3" data-formset-row>
+                                        {% for hidden in row.hidden_fields %}{{ hidden }}{% endfor %}
+
+                                        <div class="row g-3 workforce-grid">
+                                            <div class="col-12 col-lg-4">
+                                                <label class="form-label">Master Code</label>
+                                                <div class="d-none">{{ row.master_code }}</div>
+                                                <div class="master-code-picker mb-0">
+                                                    <input type="text" class="form-control master-code-display" data-selected-code-display placeholder="No code selected" readonly>
+                                                    <button type="button" class="btn btn-sm btn-rd-outline master-code-button" data-bs-toggle="modal" data-bs-target="#generateCodeModal" data-open-master-code-modal>
+                                                        <i class="bi bi-search me-1"></i>Search
+                                                    </button>
+                                                </div>
+                                            </div>
+
+                                            <div class="col-12 col-lg-4">
+                                                <label class="form-label">Previous Worker / Select Existing</label>
+                                                {{ row.worker }}
+                                            </div>
+
+                                            <div class="col-12 col-lg-4">
+                                                <label class="form-label">Worker Name</label>
+                                                {{ row.worker_name }}
+                                            </div>
+
+                                            <div class="col-12 col-lg-4">
+                                                <label class="form-label">Worker Source</label>
+                                                {{ row.worker_source }}
+                                            </div>
+
+                                            <div class="col-12 col-lg-4">
+                                                <label class="form-label">Company / Workshop / Subcontractor</label>
+                                                {{ row.company_name }}
+                                            </div>
+
+                                            <div class="col-12 col-lg-4">
+                                                <label class="form-label">Skill Level</label>
+                                                {{ row.skill_level }}
+                                            </div>
+
+                                            <div class="col-6 col-lg-2">
+                                                <label class="form-label">Basic Hours</label>
+                                                {{ row.normal_hours }}
+                                            </div>
+
+                                            <div class="col-6 col-lg-2">
+                                                <label class="form-label">Overtime Hours</label>
+                                                {{ row.overtime_hours }}
+                                            </div>
+
+                                            <div class="col-12 col-lg-4">
+                                                <label class="form-label">Notes</label>
+                                                {{ row.notes }}
+                                            </div>
+
+                                            <div class="col-12 col-lg-4">
+                                                <div class="rd-attachment-box h-100">
+                                                    <label class="form-label mb-1">
+                                                        <i class="bi bi-paperclip me-1"></i>Worker Attachments
+                                                    </label>
+                                                    <input type="file" name="workforce_attachments_{{ row.prefix }}" class="form-control form-control-sm" multiple>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- GENERAL ATTACHMENTS -->
+            <div class="section-card mb-3">
+                <div class="section-head">
+                    <div class="section-icon"><i class="bi bi-paperclip"></i></div>
+                    <span class="section-number">08</span>
+                    <h2 class="section-title">General Report Attachments</h2>
+                </div>
+
+                <div class="section-body">
+                    <div class="attachment-upload-box">
+                        <label class="form-label">Upload General Documents</label>
+                        <input type="file" name="attachments" class="form-control" multiple>
+                        <div class="attachment-note mt-2">
+                            Use this only for general report files. Section-specific files should be uploaded inside each entry row.
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="d-flex gap-3 justify-content-end mt-4">
+
+                <button
+                    type="submit"
+                    name="action"
+                    value="draft"
+                    class="btn btn-outline-secondary px-4"
+                >
+                    <i class="bi bi-save me-2"></i>
+                    Save Draft
+                </button>
+
+                <button
+                    type="submit"
+                    name="action"
+                    value="submit"
+                    class="btn btn-rd-primary px-4"
+                >
+                    <i class="bi bi-send-check me-2"></i>
+                    Submit Daily Report
+                </button>
+
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- SMART MASTER CODE SEARCH MODAL -->
+<div class="modal fade" id="generateCodeModal" tabindex="-1" aria-labelledby="generateCodeModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Find Master Code</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+
+            <div class="modal-body">
+                <div class="row g-3 align-items-end mb-3">
+                    <div class="col-12 col-lg-6">
+                        <label class="form-label">Smart Search</label>
+                        <input type="text" class="form-control" id="masterCodeSearchInput" placeholder="Type work item, code, or description...">
+                    </div>
+
+                    <div class="col-12 col-lg-2">
+                        <label class="form-label">Phase</label>
+                        <select class="form-select" id="modalProjectPhase">
+                            <option value="">All phases</option>
+                            {% for phase in project_phases %}
+                                <option value="{{ phase.id }}">{{ phase.phase_code }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="col-12 col-lg-2">
+                        <label class="form-label">Category</label>
+                        <select class="form-select" id="modalCategory">
+                            <option value="">All categories</option>
+                            {% for category in categories %}
+                                <option value="{{ category.id }}">{{ category.symbol }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="col-12 col-lg-2">
+                        <label class="form-label">Subcategory</label>
+                        <select class="form-select" id="modalSubcategory">
+                            <option value="">All subcategories</option>
+                            {% for subcategory in subcategories %}
+                                <option value="{{ subcategory.id }}" data-category="{{ subcategory.category_id }}">
+                                    {{ subcategory.symbol }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+
+                <div class="generated-code-preview mb-3">
+                    Selected Code: <strong id="generatedCodePreview">No code selected</strong>
+                </div>
+
+                <div id="masterCodeResults" class="d-grid gap-2"></div>
+
+                <div id="masterCodeData" class="d-none">
+                    {% for code in master_codes %}
+                        <div
+                            data-master-code
+                            data-id="{{ code.id }}"
+                            data-phase="{{ code.project_phase_id }}"
+                            data-phase-code="{{ code.project_phase.phase_code }}"
+                            data-phase-name="{{ code.project_phase.phase_name }}"
+                            data-category="{{ code.category_id }}"
+                            data-category-code="{{ code.category.symbol }}"
+                            data-category-name="{{ code.category.description }}"
+                            data-subcategory="{{ code.subcategory_id }}"
+                            data-subcategory-code="{{ code.subcategory.symbol }}"
+                            data-subcategory-name="{{ code.subcategory.description }}"
+                            data-code="{{ code.code }}"
+                            data-description="{{ code.description|default:'' }}"
+                        ></div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-rd-outline" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-rd" id="useGeneratedCodeButton" data-bs-dismiss="modal" disabled>
+                    Use This Code
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="{% static 'reports/js/script.js' %}"></script>
+
+<script>
+(function () {
+    let activeMasterCodeInput = null;
+    let activeMasterCodeDisplay = null;
+    let activeDescriptionInput = null;
+    let selectedMasterCode = null;
+
+    const codeNodes = Array.from(document.querySelectorAll("[data-master-code]")).map((node) => ({
+        id: node.dataset.id,
+        phase: node.dataset.phase,
+        phaseCode: node.dataset.phaseCode || "",
+        phaseName: node.dataset.phaseName || "",
+        category: node.dataset.category,
+        categoryCode: node.dataset.categoryCode || "",
+        categoryName: node.dataset.categoryName || "",
+        subcategory: node.dataset.subcategory,
+        subcategoryCode: node.dataset.subcategoryCode || "",
+        subcategoryName: node.dataset.subcategoryName || "",
+        code: node.dataset.code || "",
+        description: node.dataset.description || "",
+    }));
+
+    const searchInput = document.getElementById("masterCodeSearchInput");
+    const phaseSelect = document.getElementById("modalProjectPhase");
+    const categorySelect = document.getElementById("modalCategory");
+    const subcategorySelect = document.getElementById("modalSubcategory");
+    const resultsBox = document.getElementById("masterCodeResults");
+    const preview = document.getElementById("generatedCodePreview");
+    const useButton = document.getElementById("useGeneratedCodeButton");
+
+    function normalize(text) {
+        return String(text || "").toLowerCase().trim();
+    }
+
+    function getSearchText(item) {
+        return normalize([
+            item.code,
+            item.description,
+            item.phaseCode,
+            item.phaseName,
+            item.categoryCode,
+            item.categoryName,
+            item.subcategoryCode,
+            item.subcategoryName,
+        ].join(" "));
+    }
+
+    function clearSelection() {
+        selectedMasterCode = null;
+        preview.textContent = "No code selected";
+        useButton.disabled = true;
+    }
+
+    function renderResults() {
+        clearSelection();
+
+        const query = normalize(searchInput.value);
+        const phaseId = phaseSelect.value;
+        const categoryId = categorySelect.value;
+        const subcategoryId = subcategorySelect.value;
+
+        let results = codeNodes.filter((item) => {
+            return (!query || getSearchText(item).includes(query)) &&
+                   (!phaseId || item.phase === phaseId) &&
+                   (!categoryId || item.category === categoryId) &&
+                   (!subcategoryId || item.subcategory === subcategoryId);
+        }).slice(0, 30);
+
+        resultsBox.innerHTML = "";
+
+        if (!results.length) {
+            resultsBox.innerHTML = '<div class="alert alert-warning mb-0">No matching master code found.</div>';
+            return;
+        }
+
+        results.forEach((item) => {
+            const card = document.createElement("div");
+            card.className = "master-code-search-result";
+            card.innerHTML = `
+                <div class="master-code-result-code">${item.code}</div>
+                <div class="master-code-result-desc">${item.description}</div>
+                <div class="master-code-result-meta">
+                    ${item.phaseCode} - ${item.phaseName} / ${item.categoryCode} - ${item.categoryName} / ${item.subcategoryCode} - ${item.subcategoryName}
+                </div>
+            `;
+            card.addEventListener("click", () => {
+                selectedMasterCode = item;
+                preview.textContent = `${item.code} - ${item.description}`;
+                useButton.disabled = false;
+                document.querySelectorAll(".master-code-search-result").forEach((el) => el.classList.remove("active"));
+                card.classList.add("active");
+            });
+            resultsBox.appendChild(card);
+        });
+    }
+
+    document.addEventListener("click", function (event) {
+        const button = event.target.closest("[data-open-master-code-modal]");
+        if (!button) return;
+
+        const row = button.closest("[data-formset-row]");
+        activeMasterCodeInput = row ? row.querySelector("select[name$='master_code'], input[name$='master_code']") : null;
+        activeMasterCodeDisplay = row ? row.querySelector("[data-selected-code-display]") : null;
+        activeDescriptionInput = row ? row.querySelector("input[name$='description'], textarea[name$='description']") : null;
+
+        searchInput.value = "";
+        phaseSelect.value = "";
+        categorySelect.value = "";
+        subcategorySelect.value = "";
+        renderResults();
+        setTimeout(() => searchInput.focus(), 250);
+    });
+
+    [searchInput, phaseSelect, categorySelect, subcategorySelect].forEach((el) => {
+        el.addEventListener("input", renderResults);
+        el.addEventListener("change", renderResults);
+    });
+
+    useButton.addEventListener("click", function () {
+        if (!selectedMasterCode || !activeMasterCodeInput) return;
+
+        activeMasterCodeInput.value = selectedMasterCode.id;
+        activeMasterCodeInput.dispatchEvent(new Event("change", { bubbles: true }));
+
+        if (activeMasterCodeDisplay) {
+            activeMasterCodeDisplay.value = selectedMasterCode.code;
+        }
+
+        if (activeDescriptionInput && !activeDescriptionInput.value) {
+            activeDescriptionInput.value = selectedMasterCode.description;
+        }
+    });
+
+    renderResults();
+})();
+</script>
+</body>
+</html>
