@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+
+{% block title %}Feedback | RD System{% endblock %}
+
+{% block content %}
+<div class="rd-auth-wrap">
+    <div class="rd-auth-card">
+        <div class="row g-0">
+
+            <div class="col-lg-5 rd-auth-hero p-5">
+                <div class="rd-auth-logo mb-4">
+                    <i class="bi bi-chat-dots"></i>
+                </div>
+                <h1 class="fw-bold mb-3">Feedback</h1>
+                <p class="rd-muted-on-dark mb-0">
+                    Share your notes, issues, or improvement ideas for RD_SYSTEM.
+                </p>
+            </div>
+
+            <div class="col-lg-7 rd-login-panel p-5">
+                <h3 class="fw-bold mb-2">Send Feedback</h3>
+                <p class="text-muted mb-4">
+                    Your feedback helps improve the internal operations platform.
+                </p>
+
+                <form method="post">
+                    {% csrf_token %}
+
+                    <div class="mb-3">
+                        <label class="form-label">Your Name</label>
+                        <input type="text" name="name" class="form-control" value="{{ request.user.username|default:'' }}">
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Feedback Type</label>
+                        <select name="feedback_type" class="form-select">
+                            <option value="issue">Issue / Bug</option>
+                            <option value="idea">Improvement Idea</option>
+                            <option value="request">New Feature Request</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label">Message</label>
+                        <textarea name="message" class="form-control" rows="5" required placeholder="Write your feedback here..."></textarea>
+                    </div>
+
+                    <div class="d-flex flex-wrap gap-2">
+                        <button type="submit" class="btn btn-rd-primary">
+                            Submit Feedback
+                        </button>
+                        <a href="{% url 'home' %}" class="btn btn-rd-soft">
+                            Back to Login
+                        </a>
+                    </div>
+                </form>
+            </div>
+
+        </div>
+    </div>
+</div>
+{% endblock %}

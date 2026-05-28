@@ -23,7 +23,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-ouvct18c^l%xm&&y1-p-_f&89w2=3tcn4@r04)usq*o&j7^v_y'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
 ALLOWED_HOSTS = []
 
@@ -131,8 +131,10 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 # Authentication
 LOGIN_URL = "home"
 LOGIN_REDIRECT_URL = "dashboard_home"
-LOGOUT_REDIRECT_URL = "home"
+LOGOUT_REDIRECT_URL = "/"
 
+MEDIA_URL = "/media/"
+MEDIA_ROOT = BASE_DIR / "media"
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 

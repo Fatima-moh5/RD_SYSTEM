@@ -30,10 +30,10 @@ from reports.models import (
     DailyReport,
     DailyReportChangeLog,
     DailyReportAttachment,
+    BlockedIssue,
 )
 
 from reports.services.weather_service import fetch_weather
-
 
 DAILY_REPORT_FORM_TEMPLATE = "reports/forms/daily_report/daily_report_form.html"
 DAILY_REPORT_LIST_TEMPLATE = "reports/forms/daily_report/daily_report_list.html"
@@ -48,10 +48,10 @@ def can_view_all_reports(user):
     return (
         user.is_superuser
         or user_in_group(user, "Admin")
-        or user_in_group(user, "Project Manager")
-        or user_in_group(user, "Department Manager")
-        or user_in_group(user, "Operation")
-        or user_in_group(user, "Cost Control")
+        or user_in_group(user, "Project_mgr")
+        or user_in_group(user, "dep_mgr")
+        or user_in_group(user, "operations")
+        or user_in_group(user, "Cost_Control")
     )
 
 
@@ -103,6 +103,29 @@ def check_report_permission(user, report):
 
     raise PermissionDenied("You do not have permission to access this report.")
 
+def is_project_manager(user):
+    return (
+        user.is_superuser
+        or user_in_group(user, "Project_mgr")
+        or user_in_group(user, "dep_mgr")
+        or user_in_group(user, "operations")
+    )
+
+
+def can_edit_report(user, report):
+    if user.is_superuser:
+        return True
+
+    if is_project_manager(user):
+        return True
+
+    if report.created_by_id != user.id:
+        return False
+
+    return report.status in [
+        DailyReport.STATUS_DRAFT,
+        DailyReport.STATUS_RETURNED,
+    ]
 
 def get_week_range(today):
     start = today - timedelta(days=today.weekday())
@@ -335,6 +358,14 @@ def daily_report_create(request):
             if not report.project:
                 report.project = default_project
 
+            action = request.POST.get("action", "draft")
+
+            if action == "submit":
+                report.status = DailyReport.STATUS_SUBMITTED
+                report.submitted_at = timezone.now()
+            else:
+                report.status = DailyReport.STATUS_DRAFT
+
             try:
                 apply_weather_to_report(report, report.project)
             except Exception:
@@ -397,7 +428,9 @@ def daily_report_create(request):
 def daily_report_edit(request, pk):
     report = get_object_or_404(DailyReport, pk=pk)
     check_report_permission(request.user, report)
-
+    if request.method == "POST" and not can_edit_report(request.user, report):
+        messages.error(request, "This report is locked and cannot be edited.")
+        return redirect("daily_report_edit", pk=report.pk)
     assigned_projects = get_assigned_projects(request.user)
 
     tracked_fields = [
@@ -433,26 +466,21 @@ def daily_report_edit(request, pk):
         )
 
         if form.is_valid() and formsets_are_valid(formsets):
-            report = form.save()
+
+            report = form.save(commit=False)
+
+            action = request.POST.get("action", "draft")
+
+            if action == "submit":
+                report.status = DailyReport.STATUS_SUBMITTED
+                report.submitted_at = timezone.now()
+
+            report.save()
+
             save_formsets(formsets)
             save_attachments(report, request.FILES)
 
-            new_values = {field: getattr(report, field) for field in tracked_fields}
-
-            changed_fields = log_report_changes(
-                report=report,
-                old_values=old_values,
-                new_values=new_values,
-                user=request.user,
-            )
-
-            request.session["changed_fields"] = changed_fields
-
-            if changed_fields:
-                messages.success(request, "Report updated. Edited fields are highlighted.")
-            else:
-                messages.success(request, "Report saved. No main report fields were changed.")
-
+            messages.success(request, "Daily report updated successfully.")
             return redirect("daily_report_edit", pk=report.pk)
 
         messages.error(request, "Please correct the errors before saving.")
@@ -474,6 +502,7 @@ def daily_report_edit(request, pk):
         "mode": "edit",
         "changed_fields": changed_fields,
         "change_logs": report.change_logs.all()[:20],
+        "can_pm_review": is_project_manager(request.user),
         **get_master_code_context(),
         **formsets,
     }
@@ -493,4 +522,336 @@ def daily_report_print(request, pk):
             "page_title": "Print Daily Report",
             "report": report,
         },
+    )
+
+@login_required
+@transaction.atomic
+def daily_report_submit(request, pk):
+    report = get_object_or_404(DailyReport, pk=pk)
+    check_report_permission(request.user, report)
+
+    if report.created_by_id != request.user.id and not request.user.is_superuser:
+        raise PermissionDenied("Only the report creator can submit this report.")
+
+    if report.status not in [DailyReport.STATUS_DRAFT, DailyReport.STATUS_RETURNED]:
+        messages.error(request, "Only draft or returned reports can be submitted.")
+        return redirect("daily_report_edit", pk=report.pk)
+
+    report.status = DailyReport.STATUS_SUBMITTED
+    report.submitted_at = timezone.now()
+    report.save(update_fields=["status", "submitted_at", "updated_at"])
+
+    messages.success(request, "Daily report submitted for Project Manager review.")
+    return redirect("daily_report_edit", pk=report.pk)
+
+
+@login_required
+@transaction.atomic
+def daily_report_approve(request, pk):
+    report = get_object_or_404(DailyReport, pk=pk)
+    check_report_permission(request.user, report)
+
+    if not is_project_manager(request.user):
+        raise PermissionDenied("Only Project Manager can approve reports.")
+
+    if request.method == "POST":
+        report.status = DailyReport.STATUS_APPROVED
+        report.reviewed_by = request.user
+        report.reviewed_at = timezone.now()
+        report.review_note = request.POST.get("review_note", "").strip()
+        report.save(update_fields=[
+            "status",
+            "reviewed_by",
+            "reviewed_at",
+            "review_note",
+            "updated_at",
+        ])
+
+        messages.success(request, "Daily report approved successfully.")
+
+    return redirect("daily_report_edit", pk=report.pk)
+
+
+@login_required
+@transaction.atomic
+def daily_report_return(request, pk):
+    report = get_object_or_404(DailyReport, pk=pk)
+    check_report_permission(request.user, report)
+
+    if not is_project_manager(request.user):
+        raise PermissionDenied("Only Project Manager can return reports.")
+
+    if request.method == "POST":
+        note = request.POST.get("review_note", "").strip()
+
+        if not note:
+            messages.error(request, "Return note is required.")
+            return redirect("daily_report_edit", pk=report.pk)
+
+        report.status = DailyReport.STATUS_RETURNED
+        report.reviewed_by = request.user
+        report.reviewed_at = timezone.now()
+        report.review_note = note
+        report.returned_count += 1
+        report.save(update_fields=[
+            "status",
+            "reviewed_by",
+            "reviewed_at",
+            "review_note",
+            "returned_count",
+            "updated_at",
+        ])
+
+        messages.success(request, "Daily report returned for correction.")
+
+    return redirect("daily_report_edit", pk=report.pk)
+
+
+@login_required
+@transaction.atomic
+def daily_report_reject(request, pk):
+    report = get_object_or_404(DailyReport, pk=pk)
+    check_report_permission(request.user, report)
+
+    if not is_project_manager(request.user):
+        raise PermissionDenied("Only Project Manager can reject reports.")
+
+    if request.method == "POST":
+        note = request.POST.get("review_note", "").strip()
+
+        if not note:
+            messages.error(request, "Rejection note is required.")
+            return redirect("daily_report_edit", pk=report.pk)
+
+        report.status = DailyReport.STATUS_REJECTED
+        report.reviewed_by = request.user
+        report.reviewed_at = timezone.now()
+        report.review_note = note
+        report.save(update_fields=[
+            "status",
+            "reviewed_by",
+            "reviewed_at",
+            "review_note",
+            "updated_at",
+        ])
+
+        messages.success(request, "Daily report rejected.")
+
+    return redirect("daily_report_edit", pk=report.pk)
+
+@login_required
+def blocked_issue_list(request):
+
+    if not is_project_manager(request.user):
+        raise PermissionDenied(
+            "Only Project Manager can access Blocked Issues Center."
+        )
+
+    issues = BlockedIssue.objects.select_related(
+        "report",
+        "report__project",
+        "report__created_by",
+    ).order_by("-created_at")
+
+    status_filter = request.GET.get("status", "")
+    severity_filter = request.GET.get("severity", "")
+
+    if status_filter:
+        issues = issues.filter(pm_status=status_filter)
+
+    if severity_filter:
+        issues = issues.filter(severity=severity_filter)
+
+    context = {
+        "page_title": "Blocked Issues Center",
+        "issues": issues,
+        "selected_status": status_filter,
+        "selected_severity": severity_filter,
+    }
+
+    return render(
+        request,
+        "reports/blocked_issues/blocked_issue_list.html",
+        context,
+    )
+
+
+@login_required
+@transaction.atomic
+def blocked_issue_detail(request, pk):
+
+    if not is_project_manager(request.user):
+        raise PermissionDenied(
+            "Only Project Manager can manage blocked issues."
+        )
+
+    issue = get_object_or_404(
+        BlockedIssue.objects.select_related(
+            "report",
+            "report__project",
+            "report__created_by",
+        ),
+        pk=pk,
+    )
+
+    if request.method == "POST":
+
+        issue.pm_status = request.POST.get(
+            "pm_status",
+            issue.pm_status,
+        )
+
+        issue.pm_note = request.POST.get(
+            "pm_note",
+            "",
+        ).strip()
+
+        issue.impact_note = request.POST.get(
+            "impact_note",
+            "",
+        ).strip()
+
+        issue.amended_solution = request.POST.get(
+            "amended_solution",
+            "",
+        ).strip()
+
+        issue.follow_up_with = request.POST.get(
+            "follow_up_with",
+            "",
+        ).strip()
+
+        issue.escalated_to = request.POST.get(
+            "escalated_to",
+            "",
+        ).strip()
+
+        issue.reviewed_by = request.user
+        issue.reviewed_at = timezone.now()
+
+        issue.save()
+
+        messages.success(
+            request,
+            "Blocked issue updated successfully."
+        )
+
+        return redirect(
+            "blocked_issue_detail",
+            pk=issue.pk,
+        )
+
+    context = {
+        "page_title": "Blocked Issue Details",
+        "issue": issue,
+    }
+
+    return render(
+        request,
+        "reports/blocked_issues/blocked_issue_detail.html",
+        context,
+    )
+    
+@login_required
+def blocked_issue_list(request):
+    if not is_project_manager(request.user):
+        raise PermissionDenied("Only Project Manager can access Blocked Issues Center.")
+
+    issues = BlockedIssue.objects.select_related(
+        "daily_report",
+        "daily_report__project",
+        "daily_report__created_by",
+        "master_code",
+        "reviewed_by",
+        "escalated_to",
+    ).order_by("-created_at")
+
+    status_filter = request.GET.get("status", "")
+    priority_filter = request.GET.get("priority", "")
+    project_id = request.GET.get("project", "")
+
+    if status_filter:
+        issues = issues.filter(pm_status=status_filter)
+
+    if priority_filter:
+        issues = issues.filter(priority__iexact=priority_filter)
+
+    if project_id:
+        issues = issues.filter(daily_report__project_id=project_id)
+
+    projects = (
+        DailyReport.objects
+        .exclude(project__isnull=True)
+        .values("project_id", "project__name")
+        .distinct()
+        .order_by("project__name")
+    )
+
+    context = {
+        "page_title": "Blocked Issues Center",
+        "issues": issues,
+        "projects": projects,
+        "selected_status": status_filter,
+        "selected_priority": priority_filter,
+        "selected_project": project_id,
+        "status_choices": BlockedIssue.STATUS_CHOICES,
+    }
+
+    return render(
+        request,
+        "reports/blocked_issues/blocked_issue_list.html",
+        context,
+    )
+
+
+@login_required
+@transaction.atomic
+def blocked_issue_detail(request, pk):
+    if not is_project_manager(request.user):
+        raise PermissionDenied("Only Project Manager can manage blocked issues.")
+
+    issue = get_object_or_404(
+        BlockedIssue.objects.select_related(
+            "daily_report",
+            "daily_report__project",
+            "daily_report__created_by",
+            "master_code",
+            "reviewed_by",
+            "escalated_to",
+        ),
+        pk=pk,
+    )
+
+    if request.method == "POST":
+        issue.pm_status = request.POST.get("pm_status", issue.pm_status)
+        issue.priority = request.POST.get("priority", "").strip()
+        issue.responsible_party = request.POST.get("responsible_party", "").strip()
+        issue.follow_up_with = request.POST.get("follow_up_with", "").strip()
+        issue.impact = request.POST.get("impact", "").strip()
+        issue.amended_solution = request.POST.get("amended_solution", "").strip()
+        issue.pm_note = request.POST.get("pm_note", "").strip()
+        issue.reviewed_by = request.user
+        issue.reviewed_at = timezone.now()
+
+        if issue.pm_status in [
+            BlockedIssue.STATUS_RESOLVED,
+            BlockedIssue.STATUS_CLOSED,
+        ]:
+            issue.resolved_at = timezone.now()
+
+        issue.save()
+
+        messages.success(request, "Blocked issue updated successfully.")
+        return redirect("blocked_issue_detail", pk=issue.pk)
+
+    context = {
+        "page_title": "Blocked Issue Details",
+        "issue": issue,
+        "status_choices": BlockedIssue.STATUS_CHOICES,
+    }
+
+    return render(
+        request,
+        "reports/blocked_issues/blocked_issue_detail.html",
+        context,
     )

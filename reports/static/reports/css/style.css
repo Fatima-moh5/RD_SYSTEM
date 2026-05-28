@@ -714,3 +714,12 @@ textarea.form-control,
     justify-content: flex-start !important;
     padding-top: 4rem !important;
 }
+.rd-muted-pill {
+    background: #f2f4f7;
+    color: #667085;
+    border-radius: 999px;
+    padding: 6px 10px;
+    font-size: 12px;
+    font-weight: 750;
+    white-space: nowrap;
+}

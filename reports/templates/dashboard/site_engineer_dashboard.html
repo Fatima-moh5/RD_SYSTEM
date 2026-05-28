@@ -1,0 +1,265 @@
+{% extends "dashboard/dashboard_base.html" %}
+
+{% block title %}Site Engineer Dashboard | RD_SYSTEM{% endblock %}
+{% block page_title %}Site Operations Desk{% endblock %}
+{% block page_subtitle %}
+Daily operational reporting, follow-up, and site execution updates.
+{% endblock %}
+
+{% block dashboard_content %}
+
+<div class="rd-divider"></div>
+
+<!-- TOP ALERT STRIP -->
+<div class="rd-alert-strip">
+
+    {% if today_report %}
+        <div class="rd-alert-card success">
+            <i class="bi bi-check-circle"></i>
+            <div>
+                <strong>Today's Report Started</strong>
+                <small>Continue updating today's operational report.</small>
+            </div>
+        </div>
+    {% else %}
+        <div class="rd-alert-card warning">
+            <i class="bi bi-exclamation-circle"></i>
+            <div>
+                <strong>Today's Report Missing</strong>
+                <small>Create today's daily report before end of day.</small>
+            </div>
+        </div>
+    {% endif %}
+
+    <div class="rd-alert-card info">
+        <i class="bi bi-arrow-return-left"></i>
+        <div>
+                <strong>
+                    {{ returned_reports_count }} Returned Report(s)
+                </strong>
+
+                <small>
+                    Reports returned by Project Manager for correction.
+                </small>
+        </div>
+    </div>
+
+    <div class="rd-alert-card danger">
+        <i class="bi bi-cone-striped"></i>
+        <div>
+                <strong>
+                    {{ open_blocked_issues_count }} Open Blocked Issue(s)
+                </strong>
+
+                <small>
+                    Track PM follow-up, amended solutions, and responses.
+                </small>
+        </div>
+    </div>
+
+</div>
+
+<!-- MAIN OPERATION PANEL -->
+<section class="rd-operation-panel">
+
+    <div class="rd-operation-content">
+
+        <div class="rd-operation-left">
+
+            <span class="rd-operation-badge">
+                DAILY OPERATIONS
+            </span>
+
+            <h2>
+                {% if today_report %}
+                    Continue Today's Daily Report
+                {% else %}
+                    Create Today's Daily Report
+                {% endif %}
+            </h2>
+
+            <p>
+                Submit operational site information including active works,
+                blocked issues, workforce, materials, equipment, quantities,
+                weather, and attachments.
+            </p>
+
+            <div class="rd-operation-meta">
+                <div>
+                    <strong>Date</strong>
+                    <span>{{ today|date:"M d, Y" }}</span>
+                </div>
+
+                <div>
+                    <strong>Status</strong>
+
+                    {% if today_report %}
+                        <span>{{ today_report.status }}</span>
+                    {% else %}
+                        <span>Not Started</span>
+                    {% endif %}
+                </div>
+            </div>
+
+            {% if today_report %}
+                <a href="{% url 'daily_report_edit' today_report.pk %}" class="rd-operation-btn">
+                    Continue Report
+                </a>
+            {% else %}
+                <a href="{% url 'daily_report_create' %}" class="rd-operation-btn">
+                    Create Report
+                </a>
+            {% endif %}
+
+        </div>
+
+        <div class="rd-operation-right">
+
+            <div class="rd-mini-panel">
+                <h5>Quantities Calculation</h5>
+                <p>
+                    Calculate quantities and connect results to executed works.
+                </p>
+
+                <button class="rd-mini-btn" disabled>
+                    Coming Soon
+                </button>
+            </div>
+
+            <div class="rd-mini-panel">
+                <h5>Project Life Cycle</h5>
+                <p>
+                    View project phases, schedule, and operational sequence.
+                </p>
+
+                <button class="rd-mini-btn" disabled>
+                    View Timeline
+                </button>
+            </div>
+
+        </div>
+
+    </div>
+
+</section>
+
+<!-- BOTTOM TABLES -->
+<div class="rd-bottom-grid">
+
+    <section class="rd-panel">
+
+        <div class="rd-panel-header">
+            <h4>Recent Reports</h4>
+            <span>{{ latest_reports|length }} latest</span>
+        </div>
+
+        {% if latest_reports %}
+
+            <div class="rd-report-list">
+
+                {% for report in latest_reports %}
+
+                    <a href="{% url 'daily_report_edit' report.pk %}" class="rd-report-row">
+
+                        <div>
+                            <strong>{{ report.reference_date }}</strong>
+                            <small>{{ report.project }}</small>
+                        </div>
+
+                        <span>{{ report.status }}</span>
+
+                    </a>
+
+                {% endfor %}
+
+            </div>
+
+        {% else %}
+
+            <p class="rd-empty">
+                No reports created yet.
+            </p>
+
+        {% endif %}
+
+    </section>
+
+    <section class="rd-panel">
+
+        <div class="rd-panel-header">
+            <h4>Project Manager Feedback</h4>
+            <span>Follow-up</span>
+        </div>
+
+        {% if returned_reports or my_blocked_issues %}
+
+    <div class="rd-action-list">
+
+        {% for report in returned_reports %}
+
+            <div class="rd-action-row">
+
+                <div>
+
+                    <strong>
+                        Returned Daily Report
+                    </strong>
+
+                    <small>
+                        {{ report.reference_date }}
+
+                        {% if report.review_note %}
+                            — {{ report.review_note|truncatechars:80 }}
+                        {% endif %}
+
+                    </small>
+
+                </div>
+
+                <a href="{% url 'daily_report_edit' report.pk %}">
+                    Correct
+                </a>
+
+            </div>
+
+                    {% endfor %}
+
+                    {% for issue in my_blocked_issues %}
+
+                        <div class="rd-action-row">
+
+                            <div>
+
+                                <strong>
+                                    {{ issue.get_pm_status_display }}
+                                </strong>
+
+                                <small>
+                                    {{ issue.issue|truncatechars:90 }}
+                                </small>
+
+                            </div>
+
+                            <span class="rd-muted-pill">
+                                {{ issue.priority|default:"follow-up" }}
+                            </span>
+
+                        </div>
+
+                    {% endfor %}
+
+                </div>
+
+            {% else %}
+
+                <div class="rd-empty">
+                    No PM feedback or blocked issue follow-up for now.
+                </div>
+
+            {% endif %}
+
+    </section>
+
+</div>
+
+{% endblock %}

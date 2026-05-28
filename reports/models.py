@@ -14,14 +14,16 @@ from reports.master_data.models import (
 class DailyReport(models.Model):
     STATUS_DRAFT = "draft"
     STATUS_SUBMITTED = "submitted"
-    STATUS_REVIEWED = "reviewed"
+    STATUS_APPROVED = "approved"
     STATUS_RETURNED = "returned"
+    STATUS_REJECTED = "rejected"
 
     STATUS_CHOICES = [
-        (STATUS_DRAFT, "Draft"),
-        (STATUS_SUBMITTED, "Submitted"),
-        (STATUS_REVIEWED, "Reviewed"),
-        (STATUS_RETURNED, "Returned for Correction"),
+    (STATUS_DRAFT, "Draft"),
+    (STATUS_SUBMITTED, "Submitted for Review"),
+    (STATUS_APPROVED, "Approved"),
+    (STATUS_RETURNED, "Returned for Correction"),
+    (STATUS_REJECTED, "Rejected"),
     ]
 
     WEATHER_SOURCE_MANUAL = "manual"
@@ -78,6 +80,9 @@ class DailyReport(models.Model):
         related_name="reviewed_daily_reports",
     )
     reviewed_at = models.DateTimeField(blank=True, null=True)
+    review_note = models.TextField(blank=True, default="")
+    returned_count = models.PositiveIntegerField(default=0)
+    submitted_at = models.DateTimeField(blank=True, null=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -173,6 +178,26 @@ class BlockedIssue(models.Model):
     priority = models.CharField(max_length=50, blank=True, default="")
     responsible_party = models.CharField(max_length=150, blank=True, default="")
 
+    pm_note = models.TextField(blank=True, default="")
+
+    follow_up_with = models.CharField(
+        max_length=150,
+        blank=True,
+        default=""
+    )
+
+    reviewed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        blank=True,
+        null=True,
+        on_delete=models.SET_NULL,
+        related_name="reviewed_blocked_issues",
+    )
+
+    reviewed_at = models.DateTimeField(
+        blank=True,
+        null=True,
+    )
     escalated_to = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         blank=True,
@@ -581,3 +606,51 @@ class DailyReportAttachment(models.Model):
 
     def __str__(self):
         return f"{self.section} - {self.daily_report_id}"
+
+
+class UserActivityLog(models.Model):
+    ACTION_LOGIN = "login"
+    ACTION_LOGOUT = "logout"
+    ACTION_CREATE = "create"
+    ACTION_UPDATE = "update"
+    ACTION_SUBMIT = "submit"
+    ACTION_APPROVE = "approve"
+    ACTION_RETURN = "return"
+    ACTION_REJECT = "reject"
+    ACTION_PRINT = "print"
+
+    ACTION_CHOICES = [
+        (ACTION_LOGIN, "Login"),
+        (ACTION_LOGOUT, "Logout"),
+        (ACTION_CREATE, "Create"),
+        (ACTION_UPDATE, "Update"),
+        (ACTION_SUBMIT, "Submit"),
+        (ACTION_APPROVE, "Approve"),
+        (ACTION_RETURN, "Return"),
+        (ACTION_REJECT, "Reject"),
+        (ACTION_PRINT, "Print"),
+    ]
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        blank=True,
+        null=True,
+        on_delete=models.SET_NULL,
+    )
+    action = models.CharField(
+        max_length=50,
+        choices=ACTION_CHOICES,
+    )
+    description = models.TextField(blank=True, default="")
+    ip_address = models.GenericIPAddressField(
+        blank=True,
+        null=True,
+    )
+    user_agent = models.TextField(blank=True, default="")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.user} - {self.action}"

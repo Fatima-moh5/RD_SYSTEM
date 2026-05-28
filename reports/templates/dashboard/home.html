@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Dashboard | Raffoul Development{% endblock %}
+{% block title %}Site Engineer Dashboard | RD System{% endblock %}
 
 {% block content %}
 <div class="container-fluid py-4">
@@ -16,40 +16,55 @@
 
             <div class="text-lg-end">
                 <span class="badge bg-light text-dark">
-                    Role: Site Engineer
+                    Role: {{ role_label }}
                 </span>
+                <div class="small text-white-50 mt-1">
+                    Assigned Projects: {{ assigned_projects_count }}
+                </div>
             </div>
         </div>
     </div>
 
-    <div class="row g-4">
+    <!-- TOP STATUS CARDS -->
+    <div class="row g-4 mb-4">
 
         <div class="col-md-6 col-xl-3">
-            <div class="card module-card">
+            <div class="card module-card h-100">
                 <div class="card-body p-4">
                     <div class="module-icon icon-blue">
                         <i class="bi bi-clipboard2-check"></i>
                     </div>
-                    <h5 class="fw-bold">Create Daily Report</h5>
-                    <p class="text-muted mb-4">
-                        Create today’s site report including active works, blocked issues, resources, and visits.
-                    </p>
-                    <a href="{% url 'daily_report_create' %}" class="btn btn-rd-primary w-100">
-                        Create Report
-                    </a>
+                    <h5 class="fw-bold">Today’s Daily Report</h5>
+
+                    {% if today_report %}
+                        <p class="text-muted mb-4">
+                            Today’s report already exists for {{ today_report.project }}.
+                        </p>
+                        <a href="{% url 'daily_report_edit' today_report.pk %}" class="btn btn-rd-primary w-100">
+                            Continue Report
+                        </a>
+                    {% else %}
+                        <p class="text-muted mb-4">
+                            Create today’s site report including active works, blocked issues, resources, and visits.
+                        </p>
+                        <a href="{% url 'daily_report_create' %}" class="btn btn-rd-primary w-100">
+                            Create Report
+                        </a>
+                    {% endif %}
                 </div>
             </div>
         </div>
 
         <div class="col-md-6 col-xl-3">
-            <div class="card module-card">
+            <div class="card module-card h-100">
                 <div class="card-body p-4">
                     <div class="module-icon icon-green">
                         <i class="bi bi-clock-history"></i>
                     </div>
-                    <h5 class="fw-bold">My Report History</h5>
+                    <h5 class="fw-bold">Pending Reports</h5>
+                    <h2 class="fw-bold mb-2">{{ pending_reports_count }}</h2>
                     <p class="text-muted mb-4">
-                        Review, edit, print, and follow your previous daily site reports.
+                        Draft, pending, or submitted reports that need follow-up.
                     </p>
                     <a href="{% url 'daily_report_list' %}" class="btn btn-outline-secondary w-100">
                         Open Reports
@@ -59,7 +74,120 @@
         </div>
 
         <div class="col-md-6 col-xl-3">
-            <div class="card module-card">
+            <div class="card module-card h-100">
+                <div class="card-body p-4">
+                    <div class="module-icon icon-purple">
+                        <i class="bi bi-arrow-counterclockwise"></i>
+                    </div>
+                    <h5 class="fw-bold">Returned Reports</h5>
+                    <h2 class="fw-bold mb-2">{{ returned_reports_count }}</h2>
+                    <p class="text-muted mb-4">
+                        Reports returned by the Project Manager for correction.
+                    </p>
+                    <a href="{% url 'daily_report_list' %}?status=returned" class="btn btn-outline-secondary w-100">
+                        Review Returned
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6 col-xl-3">
+            <div class="card module-card h-100">
+                <div class="card-body p-4">
+                    <div class="module-icon icon-gold">
+                        <i class="bi bi-check2-circle"></i>
+                    </div>
+                    <h5 class="fw-bold">Submitted / Approved</h5>
+                    <h2 class="fw-bold mb-2">{{ submitted_reports_count }}</h2>
+                    <p class="text-muted mb-4">
+                        Reports already submitted or approved in the system.
+                    </p>
+                    <a href="{% url 'daily_report_list' %}" class="btn btn-outline-secondary w-100">
+                        View History
+                    </a>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- OPERATIONAL MODULES -->
+    <div class="row g-4 mb-4">
+
+        <div class="col-md-6 col-xl-3">
+            <div class="card module-card h-100">
+                <div class="card-body p-4">
+                    <div class="module-icon icon-purple">
+                        <i class="bi bi-exclamation-triangle"></i>
+                    </div>
+                    <h5 class="fw-bold">Blocked Issues</h5>
+                    <p class="text-muted mb-4">
+                        Follow issues submitted to the Project Manager and track their status.
+                    </p>
+                    <button class="btn btn-outline-secondary w-100" disabled>
+                        Coming Soon
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6 col-xl-3">
+            <div class="card module-card h-100">
+                <div class="card-body p-4">
+                    <div class="module-icon icon-gold">
+                        <i class="bi bi-box-seam"></i>
+                    </div>
+                    <h5 class="fw-bold">Material Requests</h5>
+                    <p class="text-muted mb-4">
+                        Submit material requests and track approval status.
+                    </p>
+                    <button class="btn btn-outline-secondary w-100" disabled>
+                        Coming Soon
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6 col-xl-3">
+            <div class="card module-card h-100">
+                <div class="card-body p-4">
+                    <div class="module-icon icon-blue">
+                        <i class="bi bi-truck"></i>
+                    </div>
+                    <h5 class="fw-bold">Equipment Requests</h5>
+                    <p class="text-muted mb-4">
+                        Request site equipment and monitor approval workflow.
+                    </p>
+                    <button class="btn btn-outline-secondary w-100" disabled>
+                        Coming Soon
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6 col-xl-3">
+            <div class="card module-card h-100">
+                <div class="card-body p-4">
+                    <div class="module-icon icon-green">
+                        <i class="bi bi-people"></i>
+                    </div>
+                    <h5 class="fw-bold">Workforce Attendance</h5>
+                    <p class="text-muted mb-4">
+                        Submit daily/monthly manpower attendance for PM review.
+                    </p>
+                    <button class="btn btn-outline-secondary w-100" disabled>
+                        Coming Soon
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="row g-4 mb-4">
+
+        <div class="col-md-6 col-xl-3">
+            <div class="card module-card h-100">
                 <div class="card-body p-4">
                     <div class="module-icon icon-gold">
                         <i class="bi bi-rulers"></i>
@@ -76,14 +204,14 @@
         </div>
 
         <div class="col-md-6 col-xl-3">
-            <div class="card module-card">
+            <div class="card module-card h-100">
                 <div class="card-body p-4">
-                    <div class="module-icon icon-purple">
-                        <i class="bi bi-exclamation-triangle"></i>
+                    <div class="module-icon icon-blue">
+                        <i class="bi bi-graph-up-arrow"></i>
                     </div>
-                    <h5 class="fw-bold">Blocked Issues</h5>
+                    <h5 class="fw-bold">Progress Update</h5>
                     <p class="text-muted mb-4">
-                        Follow issues submitted to the project manager and track their status.
+                        Update actual progress against schedule and master codes.
                     </p>
                     <button class="btn btn-outline-secondary w-100" disabled>
                         Coming Soon
@@ -92,6 +220,80 @@
             </div>
         </div>
 
+        <div class="col-md-6 col-xl-3">
+            <div class="card module-card h-100">
+                <div class="card-body p-4">
+                    <div class="module-icon icon-purple">
+                        <i class="bi bi-images"></i>
+                    </div>
+                    <h5 class="fw-bold">Attachments & Photos</h5>
+                    <p class="text-muted mb-4">
+                        Upload site photos, delivery notes, and supporting evidence.
+                    </p>
+                    <a href="{% url 'daily_report_create' %}" class="btn btn-outline-secondary w-100">
+                        Add in Report
+                    </a>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- ACTION CENTER -->
+    <div class="row g-4">
+        <div class="col-xl-7">
+            <div class="card module-card">
+                <div class="card-body p-4">
+                    <h5 class="fw-bold mb-3">My Action Center</h5>
+
+                    {% if action_items %}
+                        <div class="list-group list-group-flush">
+                            {% for item in action_items %}
+                                <div class="list-group-item px-0 d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <div class="fw-semibold">{{ item.title }}</div>
+                                        <div class="small text-muted">{{ item.status }}</div>
+                                    </div>
+                                    <a href="{% url item.url_name %}" class="btn btn-sm btn-outline-secondary">
+                                        {{ item.action }}
+                                    </a>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <p class="text-muted mb-0">
+                            No urgent actions for now.
+                        </p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-5">
+            <div class="card module-card">
+                <div class="card-body p-4">
+                    <h5 class="fw-bold mb-3">Latest Reports</h5>
+
+                    {% if latest_reports %}
+                        <div class="list-group list-group-flush">
+                            {% for report in latest_reports %}
+                                <a href="{% url 'daily_report_edit' report.pk %}" class="list-group-item list-group-item-action px-0">
+                                    <div class="d-flex justify-content-between">
+                                        <strong>{{ report.reference_date }}</strong>
+                                        <span class="badge bg-light text-dark">{{ report.status }}</span>
+                                    </div>
+                                    <div class="small text-muted">{{ report.project }}</div>
+                                </a>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <p class="text-muted mb-0">
+                            No reports created yet.
+                        </p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
     </div>
 
 </div>

@@ -5,6 +5,7 @@ from import_export.widgets import ForeignKeyWidget
 
 from reports.master_data.models import (
     Project,
+    ProjectAssignment,
     ProjectPhase,
     DocumentType,
     Category,
@@ -31,6 +32,44 @@ class ProjectAdmin(admin.ModelAdmin):
         "address",
     )
 
+@admin.register(ProjectAssignment)
+class ProjectAssignmentAdmin(admin.ModelAdmin):
+    list_display = (
+        "project",
+        "user",
+        "role",
+        "is_primary",
+        "is_active",
+        "start_date",
+        "end_date",
+    )
+
+    list_filter = (
+        "role",
+        "is_active",
+        "is_primary",
+        "project",
+    )
+
+    search_fields = (
+        "project__code",
+        "project__name",
+        "user__username",
+        "user__first_name",
+        "user__last_name",
+        "user__email",
+    )
+
+    autocomplete_fields = (
+        "project",
+        "user",
+    )
+
+    ordering = (
+        "project__code",
+        "role",
+        "user__username",
+    )
 
 @admin.register(ProjectPhase)
 class ProjectPhaseAdmin(admin.ModelAdmin):

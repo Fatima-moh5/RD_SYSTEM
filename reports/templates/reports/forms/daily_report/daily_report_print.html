@@ -1,49 +1,489 @@
-{% extends "base.html" %}
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Daily Report Print</title>
 
-{% block title %}Print Daily Report{% endblock %}
+    <style>
+        @page {
+            size: A4;
+            margin: 12mm;
+        }
 
-{% block content %}
-<div class="container my-4">
+        * {
+            box-sizing: border-box;
+        }
 
-    <div class="d-flex justify-content-between align-items-center mb-4 no-print">
-        <a href="{% url 'daily_report_list' %}" class="btn btn-outline-secondary">
-            <i class="bi bi-arrow-left me-2"></i>
-            Back
-        </a>
+        body {
+            margin: 0;
+            background: #f3f4f6;
+            font-family: Arial, sans-serif;
+            color: #111827;
+            font-size: 11px;
+        }
 
-        <button onclick="window.print()" class="btn btn-rd-primary">
-            <i class="bi bi-printer me-2"></i>
-            Print
-        </button>
+        .print-toolbar {
+            max-width: 210mm;
+            margin: 16px auto;
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+        }
+
+        .btn {
+            border: 1px solid #d1d5db;
+            background: #ffffff;
+            color: #111827;
+            padding: 8px 14px;
+            border-radius: 6px;
+            text-decoration: none;
+            cursor: pointer;
+            font-size: 13px;
+        }
+
+        .btn-primary {
+            background: #183B56;
+            color: #ffffff;
+            border-color: #183B56;
+        }
+
+        .page {
+            width: 210mm;
+            min-height: 297mm;
+            margin: 0 auto 18px;
+            background: #ffffff;
+            padding: 12mm;
+            box-shadow: 0 10px 30px rgba(15, 23, 42, .12);
+        }
+
+        .header {
+            display: grid;
+            grid-template-columns: 70px 1fr 150px;
+            gap: 14px;
+            align-items: center;
+            border-bottom: 2px solid #183B56;
+            padding-bottom: 10px;
+            margin-bottom: 12px;
+        }
+
+        .logo {
+            width: 64px;
+            height: 64px;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            object-fit: contain;
+            padding: 4px;
+        }
+
+        .title h1 {
+            margin: 0 0 4px;
+            font-size: 20px;
+            color: #183B56;
+        }
+
+        .title p {
+            margin: 0;
+            color: #6b7280;
+            font-size: 11px;
+        }
+
+        .meta {
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .meta-row {
+            display: grid;
+            grid-template-columns: 62px 1fr;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .meta-row:last-child {
+            border-bottom: none;
+        }
+
+        .meta-label {
+            background: #f3f4f6;
+            padding: 5px;
+            font-weight: bold;
+            color: #374151;
+        }
+
+        .meta-value {
+            padding: 5px;
+        }
+
+        .section {
+            margin-top: 12px;
+            page-break-inside: avoid;
+        }
+
+        .section-title {
+            background: #183B56;
+            color: #ffffff;
+            padding: 7px 9px;
+            font-weight: bold;
+            font-size: 12px;
+            border-radius: 5px 5px 0 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            border: 1px solid #d1d5db;
+        }
+
+        th {
+            background: #f3f4f6;
+            color: #374151;
+            font-weight: bold;
+            text-align: left;
+            padding: 6px;
+            border: 1px solid #d1d5db;
+        }
+
+        td {
+            padding: 6px;
+            border: 1px solid #d1d5db;
+            vertical-align: top;
+        }
+
+        .empty {
+            color: #6b7280;
+            font-style: italic;
+            padding: 8px;
+            border: 1px solid #d1d5db;
+        }
+
+        .note-box {
+            border: 1px solid #d1d5db;
+            padding: 8px;
+            min-height: 35px;
+        }
+
+        .signatures {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 14px;
+            margin-top: 18px;
+            page-break-inside: avoid;
+        }
+
+        .signature-box {
+            border: 1px solid #d1d5db;
+            height: 70px;
+            padding: 8px;
+        }
+
+        .signature-title {
+            font-weight: bold;
+            color: #374151;
+        }
+
+        @media print {
+            body {
+                background: #ffffff;
+            }
+
+            .print-toolbar {
+                display: none !important;
+            }
+
+            .page {
+                width: auto;
+                min-height: auto;
+                margin: 0;
+                padding: 0;
+                box-shadow: none;
+            }
+
+            .section {
+                page-break-inside: avoid;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="print-toolbar">
+    <a href="{% url 'daily_report_list' %}" class="btn">Back</a>
+    <button onclick="window.print()" class="btn btn-primary">Print A4</button>
+</div>
+
+<div class="page">
+
+    <div class="header">
+        <img src="{% static 'reports/images/logord.png' %}" class="logo" alt="RD Logo">
+
+        <div class="title">
+            <h1>Daily Site Report</h1>
+            <p>Raffoul Development — Internal Operations Platform</p>
+        </div>
+
+        <div class="meta">
+            <div class="meta-row">
+                <div class="meta-label">Date</div>
+                <div class="meta-value">{{ report.reference_date }}</div>
+            </div>
+            <div class="meta-row">
+                <div class="meta-label">Status</div>
+                <div class="meta-value">{{ report.get_status_display }}</div>
+            </div>
+            <div class="meta-row">
+                <div class="meta-label">Printed</div>
+                <div class="meta-value">{% now "Y-m-d H:i" %}</div>
+            </div>
+        </div>
     </div>
 
-    <div class="card p-4">
-        <h2>Daily Site Report</h2>
-        <hr>
+    <div class="section">
+        <div class="section-title">1. Project & Report Information</div>
+        <table>
+            <tr>
+                <th>Project</th>
+                <td>{{ report.project }}</td>
+                <th>Created By</th>
+                <td>{{ report.created_by|default:"-" }}</td>
+            </tr>
+            <tr>
+                <th>Weather</th>
+                <td>{{ report.weather_condition|default:"-" }}</td>
+                <th>Temperature</th>
+                <td>{% if report.temperature %}{{ report.temperature }}°C{% else %}-{% endif %}</td>
+            </tr>
+            <tr>
+                <th>Submitted At</th>
+                <td>{% if report.submitted_at %}{{ report.submitted_at|date:"Y-m-d H:i" }}{% else %}-{% endif %}</td>
+                <th>Reviewed By</th>
+                <td>{{ report.reviewed_by|default:"-" }}</td>
+            </tr>
+        </table>
+    </div>
 
-        <p><strong>Date:</strong> {{ report.reference_date }}</p>
-        <p><strong>Project:</strong> {{ report.project }}</p>
-        <p><strong>Created By:</strong> {{ report.created_by }}</p>
-        <p><strong>Status:</strong> {{ report.status }}</p>
-        <p><strong>Weather:</strong> {{ report.weather_condition }} / {{ report.temperature }}°C</p>
+    <div class="section">
+        <div class="section-title">2. Active Works</div>
+        {% if report.work_progress_items.all %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>Master Code</th>
+                        <th>Description</th>
+                        <th>Floor / Area</th>
+                        <th>Qty</th>
+                        <th>Unit</th>
+                        <th>Notes</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in report.work_progress_items.all %}
+                        <tr>
+                            <td>{{ item.master_code|default:"-" }}</td>
+                            <td>{{ item.description|default:"-" }}</td>
+                            <td>{{ item.project_area|default:"-" }}</td>
+                            <td>{{ item.quantity|default:"-" }}</td>
+                            <td>{{ item.unit|default:"-" }}</td>
+                            <td>{{ item.notes|default:"-" }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <div class="empty">No active works recorded.</div>
+        {% endif %}
+    </div>
+
+    <div class="section">
+        <div class="section-title">3. Blocked Issues</div>
+        {% if report.blocked_issues.all %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>Master Code</th>
+                        <th>Issue</th>
+                        <th>Reason</th>
+                        <th>Suggested Solution</th>
+                        <th>PM Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for issue in report.blocked_issues.all %}
+                        <tr>
+                            <td>{{ issue.master_code|default:"-" }}</td>
+                            <td>{{ issue.issue|default:"-" }}</td>
+                            <td>{{ issue.reason|default:"-" }}</td>
+                            <td>{{ issue.suggested_solution|default:"-" }}</td>
+                            <td>{{ issue.get_pm_status_display }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <div class="empty">No blocked issues recorded.</div>
+        {% endif %}
+    </div>
+
+    <div class="section">
+        <div class="section-title">4. Site Visits</div>
+        {% if report.site_visits.all %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>Visit Code</th>
+                        <th>Visitor</th>
+                        <th>Entity</th>
+                        <th>Purpose</th>
+                        <th>Time</th>
+                        <th>Notes</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for visit in report.site_visits.all %}
+                        <tr>
+                            <td>{{ visit.visit_code|default:"-" }}</td>
+                            <td>{{ visit.visitor_name|default:"-" }}</td>
+                            <td>{{ visit.visitor_entity|default:"-" }}</td>
+                            <td>{{ visit.purpose|default:"-" }}</td>
+                            <td>{{ visit.visit_time|default:"-" }}</td>
+                            <td>{{ visit.notes|default:"-" }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <div class="empty">No site visits recorded.</div>
+        {% endif %}
+    </div>
+
+    <div class="section">
+        <div class="section-title">5. Workforce Entries</div>
+        {% if report.workforce_entries.all %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>Master Code</th>
+                        <th>Worker</th>
+                        <th>Source</th>
+                        <th>Company</th>
+                        <th>Skill</th>
+                        <th>Normal</th>
+                        <th>OT</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for worker in report.workforce_entries.all %}
+                        <tr>
+                            <td>{{ worker.master_code|default:"-" }}</td>
+                            <td>{{ worker.worker_name|default:"-" }}</td>
+                            <td>{{ worker.get_worker_source_display|default:"-" }}</td>
+                            <td>{{ worker.company_name|default:"-" }}</td>
+                            <td>{{ worker.get_skill_level_display|default:"-" }}</td>
+                            <td>{{ worker.normal_hours }}</td>
+                            <td>{{ worker.overtime_hours }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <div class="empty">No workforce entries recorded.</div>
+        {% endif %}
+    </div>
+
+    <div class="section">
+        <div class="section-title">6. Equipment Usage</div>
+        {% if report.equipment_usages.all %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>Master Code</th>
+                        <th>Equipment</th>
+                        <th>Qty</th>
+                        <th>Working Hours</th>
+                        <th>Idle Hours</th>
+                        <th>Notes</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for equipment in report.equipment_usages.all %}
+                        <tr>
+                            <td>{{ equipment.master_code|default:"-" }}</td>
+                            <td>{{ equipment.equipment|default:"-" }}</td>
+                            <td>{{ equipment.quantity }}</td>
+                            <td>{{ equipment.working_hours }}</td>
+                            <td>{{ equipment.idle_hours }}</td>
+                            <td>{{ equipment.notes|default:"-" }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <div class="empty">No equipment usage recorded.</div>
+        {% endif %}
+    </div>
+
+    <div class="section">
+        <div class="section-title">7. Material Receipts</div>
+        {% if report.material_receipts.all %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>Master Code</th>
+                        <th>Material</th>
+                        <th>Qty</th>
+                        <th>Unit</th>
+                        <th>Supplier</th>
+                        <th>Delivery Note</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for material in report.material_receipts.all %}
+                        <tr>
+                            <td>{{ material.master_code|default:"-" }}</td>
+                            <td>{{ material.material_name|default:"-" }}</td>
+                            <td>{{ material.quantity|default:"-" }}</td>
+                            <td>{{ material.unit|default:"-" }}</td>
+                            <td>{{ material.supplier|default:"-" }}</td>
+                            <td>{{ material.delivery_note_number|default:"-" }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <div class="empty">No material receipts recorded.</div>
+        {% endif %}
+    </div>
+
+    <div class="section">
+        <div class="section-title">8. General Notes</div>
+        <div class="note-box">{{ report.general_notes|default:"No general notes." }}</div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">9. Review Note</div>
+        <div class="note-box">{{ report.review_note|default:"No review note." }}</div>
+    </div>
+
+    <div class="signatures">
+        <div class="signature-box">
+            <div class="signature-title">Prepared By</div>
+            <br>
+            {{ report.created_by|default:"-" }}
+        </div>
+
+        <div class="signature-box">
+            <div class="signature-title">Project Manager</div>
+            <br>
+            {{ report.reviewed_by|default:"-" }}
+        </div>
+
+        <div class="signature-box">
+            <div class="signature-title">Signature / Stamp</div>
+        </div>
     </div>
 
 </div>
 
-<style>
-@media print {
-    .no-print {
-        display: none !important;
-    }
-
-    body {
-        background: white !important;
-    }
-
-    .card {
-        border: none !important;
-        box-shadow: none !important;
-    }
-}
-</style>
-{% endblock %}
+</body>
+</html>

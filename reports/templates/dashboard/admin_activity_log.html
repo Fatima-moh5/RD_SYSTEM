@@ -1,0 +1,58 @@
+{% extends "dashboard/dashboard_base.html" %}
+
+{% block title %}Admin Activity Log | RD_SYSTEM{% endblock %}
+{% block page_title %}Admin Activity Log{% endblock %}
+{% block page_subtitle %}Login, logout, report actions, review decisions, and print activity tracking.{% endblock %}
+
+{% block dashboard_content %}
+<div class="rd-divider"></div>
+
+<section class="rd-panel">
+    <div class="rd-panel-header">
+        <h4>User Activity</h4>
+        <span>Latest 200 records</span>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table align-middle mb-0">
+            <thead>
+                <tr>
+                    <th>Date / Time</th>
+                    <th>User</th>
+                    <th>Action</th>
+                    <th>Description</th>
+                    <th>IP Address</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                {% for log in logs %}
+                    <tr>
+                        <td>{{ log.created_at|date:"Y-m-d H:i:s" }}</td>
+                        <td>
+                            {% if log.user %}
+                                {{ log.user.username }}
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="badge bg-light text-dark">
+                                {{ log.get_action_display }}
+                            </span>
+                        </td>
+                        <td>{{ log.description }}</td>
+                        <td>{{ log.ip_address|default:"-" }}</td>
+                    </tr>
+                {% empty %}
+                    <tr>
+                        <td colspan="5" class="text-center text-muted py-4">
+                            No activity logs found.
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+{% endblock %}

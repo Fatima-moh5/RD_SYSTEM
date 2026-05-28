@@ -1,0 +1,152 @@
+{% extends "dashboard/dashboard_base.html" %}
+{% load static %}
+
+{% block title %}Blocked Issues Center | RD_SYSTEM{% endblock %}
+{% block page_title %}Blocked Issues Center{% endblock %}
+{% block page_subtitle %}Open blocked issues requiring Project Manager review, follow-up, or closure.{% endblock %}
+
+{% block dashboard_content %}
+<div class="rd-divider"></div>
+
+<div class="container-fluid px-0">
+
+    <div class="row g-3 mb-4">
+        <div class="col-md-4">
+            <div class="rd-panel h-100">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <small class="text-muted">Open Blocked Issues</small>
+                        <h2 class="mb-0">{{ open_blocked_issues_count|default:0 }}</h2>
+                    </div>
+                    <div class="rd-card-icon red">
+                        <i class="bi bi-exclamation-triangle"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="rd-panel h-100">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <small class="text-muted">Submitted Reports</small>
+                        <h2 class="mb-0">{{ submitted_reports_count|default:0 }}</h2>
+                    </div>
+                    <div class="rd-card-icon blue">
+                        <i class="bi bi-clipboard-check"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="rd-panel h-100">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <small class="text-muted">Today</small>
+                        <h5 class="mb-0">{{ today|date:"M d, Y" }}</h5>
+                    </div>
+                    <div class="rd-card-icon gold">
+                        <i class="bi bi-calendar3"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <section class="rd-panel">
+        <div class="rd-panel-header d-flex justify-content-between align-items-center gap-3 flex-wrap">
+            <div>
+                <h4 class="mb-1">Open Issues</h4>
+                <small class="text-muted">Issues are shown from submitted daily reports and exclude closed PM status.</small>
+            </div>
+
+            <a href="{% url 'dashboard_home' %}" class="btn btn-sm btn-outline-secondary">
+                <i class="bi bi-arrow-left"></i> Back to Dashboard
+            </a>
+        </div>
+
+        {% if issues %}
+            <div class="table-responsive mt-3">
+                <table class="table align-middle table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Project</th>
+                            <th>Site Engineer</th>
+                            <th>Status</th>
+                            <th>Issue Details</th>
+                            <th>PM Follow-up</th>
+                            <th>Report</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for issue in issues %}
+                            <tr>
+                                <td>{{ issue.daily_report.reference_date|date:"M d, Y" }}</td>
+                                <td>{{ issue.daily_report.project }}</td>
+                                <td>
+                                    {% if issue.daily_report.created_by.get_full_name %}
+                                        {{ issue.daily_report.created_by.get_full_name }}
+                                    {% else %}
+                                        {{ issue.daily_report.created_by.username }}
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span class="badge bg-warning text-dark">
+                                        {{ issue.pm_status|default:"Open" }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <div class="fw-semibold">
+                                        {% if issue.master_code %}
+                                            {{ issue.master_code }}
+                                        {% else %}
+                                            Blocked Issue
+                                        {% endif %}
+                                    </div>
+
+                                    {% if issue.notes %}
+                                        <small class="text-muted d-block">{{ issue.notes }}</small>
+                                    {% elif issue.description %}
+                                        <small class="text-muted d-block">{{ issue.description }}</small>
+                                    {% else %}
+                                        <small class="text-muted d-block">No details entered.</small>
+                                    {% endif %}
+
+                                    {% if issue.follow_up_with %}
+                                        <small class="text-muted d-block mt-1">
+                                            Follow up with: {{ issue.follow_up_with }}
+                                        </small>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if issue.reviewed_by %}
+                                        <small class="text-muted d-block">Reviewed by:</small>
+                                        <span>{{ issue.reviewed_by }}</span>
+                                    {% else %}
+                                        <span class="text-muted">Not reviewed yet</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <a href="{% url 'daily_report_edit' issue.daily_report.id %}" class="btn btn-sm btn-outline-primary">
+                                        Open Report
+                                    </a>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="text-center py-5">
+                <div class="rd-card-icon green mx-auto mb-3">
+                    <i class="bi bi-check2-circle"></i>
+                </div>
+                <h5>No open blocked issues</h5>
+                <p class="text-muted mb-0">There are no blocked issues requiring PM follow-up right now.</p>
+            </div>
+        {% endif %}
+    </section>
+</div>
+{% endblock %}

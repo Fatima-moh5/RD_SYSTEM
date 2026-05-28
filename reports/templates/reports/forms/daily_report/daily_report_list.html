@@ -90,30 +90,11 @@
                         <select name="status" class="form-select">
 
                             <option value="">All Statuses</option>
-
-                            <option value="draft"
-                                {% if selected_status == "draft" %}
-                                    selected
-                                {% endif %}
-                            >
-                                Draft
-                            </option>
-
-                            <option value="submitted"
-                                {% if selected_status == "submitted" %}
-                                    selected
-                                {% endif %}
-                            >
-                                Submitted
-                            </option>
-
-                            <option value="reviewed"
-                                {% if selected_status == "reviewed" %}
-                                    selected
-                                {% endif %}
-                            >
-                                Reviewed
-                            </option>
+                            <option value="draft" {% if selected_status == "draft" %}selected{% endif %}>Draft</option>
+                            <option value="submitted" {% if selected_status == "submitted" %}selected{% endif %}>Submitted</option>
+                            <option value="approved" {% if selected_status == "approved" %}selected{% endif %}>Approved</option>
+                            <option value="returned" {% if selected_status == "returned" %}selected{% endif %}>Returned</option>
+                            <option value="rejected" {% if selected_status == "rejected" %}selected{% endif %}>Rejected</option>
 
                         </select>
 
@@ -191,20 +172,17 @@
                                 <td>
 
                                     {% if report.status == "draft" %}
-                                        <span class="badge bg-secondary">
-                                            Draft
-                                        </span>
-
+                                        <span class="badge bg-secondary">Draft</span>
                                     {% elif report.status == "submitted" %}
-                                        <span class="badge bg-primary">
-                                            Submitted
-                                        </span>
-
-                                    {% elif report.status == "reviewed" %}
-                                        <span class="badge bg-success">
-                                            Reviewed
-                                        </span>
-
+                                        <span class="badge bg-primary">Submitted</span>
+                                    {% elif report.status == "approved" %}
+                                        <span class="badge bg-success">Approved</span>
+                                    {% elif report.status == "returned" %}
+                                        <span class="badge bg-warning text-dark">Returned</span>
+                                    {% elif report.status == "rejected" %}
+                                        <span class="badge bg-danger">Rejected</span>
+                                    {% else %}
+                                        <span class="badge bg-light text-dark">{{ report.status }}</span>
                                     {% endif %}
 
                                 </td>

@@ -3,7 +3,7 @@ from reports.master_data.admin import *
 from django.contrib import admin
 
 from reports.models import DailyReportAttachment
-
+from reports.models import UserActivityLog
 
 @admin.register(DailyReportAttachment)
 class DailyReportAttachmentAdmin(admin.ModelAdmin):
@@ -35,3 +35,32 @@ class DailyReportAttachmentAdmin(admin.ModelAdmin):
     ordering = (
         "-uploaded_at",
     )
+    
+    @admin.register(UserActivityLog)
+    class UserActivityLogAdmin(admin.ModelAdmin):
+
+        list_display = (
+            "id",
+            "user",
+            "action",
+            "ip_address",
+            "created_at",
+        )
+
+        list_filter = (
+            "action",
+            "created_at",
+        )
+
+        search_fields = (
+            "user__username",
+            "description",
+        )
+
+        readonly_fields = (
+            "created_at",
+        )
+
+        ordering = (
+            "-created_at",
+        )
