@@ -920,7 +920,55 @@
         }
     });
 
+    function findMasterCodeById(id) {
+        return codeNodes.find((item) => String(item.id) === String(id));
+    }
+
+    function setMasterCodeDisplay(row, masterCodeId) {
+        if (!row) return;
+
+        const display = row.querySelector("[data-selected-code-display]");
+        const input = row.querySelector("select[name$='master_code'], input[name$='master_code']");
+
+        if (!display || !input) return;
+
+        if (!masterCodeId) {
+            display.value = "";
+            display.placeholder = "No code selected";
+            return;
+        }
+
+        const item = findMasterCodeById(masterCodeId);
+
+        if (item) {
+            display.value = item.code;
+            return;
+        }
+
+        if (input.options && input.selectedIndex >= 0) {
+            const selectedText = input.options[input.selectedIndex].text || "";
+            display.value = selectedText.split(" - ")[0].trim() || selectedText.trim();
+        }
+    }
+
+    function initializeExistingMasterCodeDisplays() {
+        document.querySelectorAll("[data-formset-row]").forEach((row) => {
+            const input = row.querySelector("select[name$='master_code'], input[name$='master_code']");
+            if (!input || !input.value) return;
+            setMasterCodeDisplay(row, input.value);
+        });
+    }
+
+    document.addEventListener("change", function (event) {
+        const input = event.target.closest("select[name$='master_code'], input[name$='master_code']");
+        if (!input) return;
+
+        const row = input.closest("[data-formset-row]");
+        setMasterCodeDisplay(row, input.value);
+    });
+
     renderResults();
+    initializeExistingMasterCodeDisplays();
 })();
 </script>
 </body>

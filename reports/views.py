@@ -390,7 +390,7 @@ def admin_activity_log_view(request):
     if not request.user.is_superuser and not user_in_group(request.user, GROUP_ADMIN):
         raise PermissionDenied("Only admin users can view activity logs.")
 
-    logs = UserActivityLog.objects.select_related("user").all()[:200]
+    logs = UserActivityLog.objects.select_related("user").order_by("-created_at")[:200]
 
     context = {
         "role_label": get_user_role_label(request.user),

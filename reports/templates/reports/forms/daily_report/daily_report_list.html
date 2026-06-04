@@ -205,12 +205,21 @@
 
                                     <div class="d-flex justify-content-end gap-2">
 
-                                        <a
-                                            href="{% url 'daily_report_edit' report.pk %}"
-                                            class="btn btn-sm btn-rd-outline"
-                                        >
-                                            View / Edit
-                                        </a>
+                                        {% if can_pm_review %}
+                                            <a
+                                                href="{% url 'daily_report_review' report.pk %}"
+                                                class="btn btn-sm btn-rd-outline"
+                                            >
+                                                View / Review
+                                            </a>
+                                        {% else %}
+                                            <a
+                                                href="{% url 'daily_report_edit' report.pk %}"
+                                                class="btn btn-sm btn-rd-outline"
+                                            >
+                                                View / Edit
+                                            </a>
+                                        {% endif %}
 
                                         <a
                                             href="{% url 'daily_report_print' report.pk %}"

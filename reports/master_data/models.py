@@ -293,6 +293,11 @@ class MasterCode(models.Model):
         self.full_clean()
         super().save(*args, **kwargs)
 
+    def __str__(self):
+        if self.code and self.description:
+            return f"{self.code} - {self.description}"
+        return self.code or "Master Code"
+
 
 class EquipmentMaster(models.Model):
     code = models.CharField(max_length=50, unique=True)

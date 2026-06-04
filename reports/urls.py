@@ -13,6 +13,7 @@ from reports.views_modules.daily_report_views import (
     daily_report_list,
     daily_report_create,
     daily_report_edit,
+    daily_report_review,
     daily_report_print,
     daily_report_submit,
     daily_report_approve,
@@ -79,9 +80,30 @@ path("admin-activity-log/", admin_activity_log_view, name="admin_activity_log"),
 
     # DAILY REPORTS
     path("daily-reports/", daily_report_list, name="daily_report_list"),
-    path("daily-reports/create/", daily_report_create, name="daily_report_create"),
-    path("daily-reports/<int:pk>/edit/", daily_report_edit, name="daily_report_edit"),
-    path("daily-reports/<int:pk>/print/", daily_report_print, name="daily_report_print"),
+
+    path(
+            "daily-reports/create/",
+            daily_report_create,
+            name="daily_report_create"
+        ),
+
+    path(
+            "daily-reports/<int:pk>/edit/",
+            daily_report_edit,
+            name="daily_report_edit"
+        ),
+
+    path(
+            "daily-reports/<int:pk>/review/",
+            daily_report_review,
+            name="daily_report_review"
+        ),
+
+    path(
+            "daily-reports/<int:pk>/print/",
+            daily_report_print,
+            name="daily_report_print"
+        ),
 
     # APIs
     path(

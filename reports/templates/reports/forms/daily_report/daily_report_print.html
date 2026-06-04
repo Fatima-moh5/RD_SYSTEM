@@ -2,488 +2,276 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>Daily Report Print</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ page_title|default:"Daily Report Review" }}</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 
     <style>
-        @page {
-            size: A4;
-            margin: 12mm;
-        }
-
-        * {
-            box-sizing: border-box;
-        }
-
-        body {
-            margin: 0;
-            background: #f3f4f6;
-            font-family: Arial, sans-serif;
-            color: #111827;
-            font-size: 11px;
-        }
-
-        .print-toolbar {
-            max-width: 210mm;
-            margin: 16px auto;
-            display: flex;
-            justify-content: space-between;
-            gap: 10px;
-        }
-
-        .btn {
-            border: 1px solid #d1d5db;
-            background: #ffffff;
-            color: #111827;
-            padding: 8px 14px;
-            border-radius: 6px;
-            text-decoration: none;
-            cursor: pointer;
-            font-size: 13px;
-        }
-
-        .btn-primary {
-            background: #183B56;
-            color: #ffffff;
-            border-color: #183B56;
-        }
-
-        .page {
-            width: 210mm;
-            min-height: 297mm;
-            margin: 0 auto 18px;
-            background: #ffffff;
-            padding: 12mm;
-            box-shadow: 0 10px 30px rgba(15, 23, 42, .12);
-        }
-
-        .header {
-            display: grid;
-            grid-template-columns: 70px 1fr 150px;
-            gap: 14px;
-            align-items: center;
-            border-bottom: 2px solid #183B56;
-            padding-bottom: 10px;
-            margin-bottom: 12px;
-        }
-
-        .logo {
-            width: 64px;
-            height: 64px;
-            border: 1px solid #e5e7eb;
-            border-radius: 8px;
-            object-fit: contain;
-            padding: 4px;
-        }
-
-        .title h1 {
-            margin: 0 0 4px;
-            font-size: 20px;
-            color: #183B56;
-        }
-
-        .title p {
-            margin: 0;
-            color: #6b7280;
-            font-size: 11px;
-        }
-
-        .meta {
-            border: 1px solid #d1d5db;
-            border-radius: 8px;
-            overflow: hidden;
-        }
-
-        .meta-row {
-            display: grid;
-            grid-template-columns: 62px 1fr;
-            border-bottom: 1px solid #e5e7eb;
-        }
-
-        .meta-row:last-child {
-            border-bottom: none;
-        }
-
-        .meta-label {
-            background: #f3f4f6;
-            padding: 5px;
-            font-weight: bold;
-            color: #374151;
-        }
-
-        .meta-value {
-            padding: 5px;
-        }
-
-        .section {
-            margin-top: 12px;
-            page-break-inside: avoid;
-        }
-
-        .section-title {
-            background: #183B56;
-            color: #ffffff;
-            padding: 7px 9px;
-            font-weight: bold;
-            font-size: 12px;
-            border-radius: 5px 5px 0 0;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            border: 1px solid #d1d5db;
-        }
-
-        th {
-            background: #f3f4f6;
-            color: #374151;
-            font-weight: bold;
-            text-align: left;
-            padding: 6px;
-            border: 1px solid #d1d5db;
-        }
-
-        td {
-            padding: 6px;
-            border: 1px solid #d1d5db;
-            vertical-align: top;
-        }
-
-        .empty {
-            color: #6b7280;
-            font-style: italic;
-            padding: 8px;
-            border: 1px solid #d1d5db;
-        }
-
-        .note-box {
-            border: 1px solid #d1d5db;
-            padding: 8px;
-            min-height: 35px;
-        }
-
-        .signatures {
-            display: grid;
-            grid-template-columns: 1fr 1fr 1fr;
-            gap: 14px;
-            margin-top: 18px;
-            page-break-inside: avoid;
-        }
-
-        .signature-box {
-            border: 1px solid #d1d5db;
-            height: 70px;
-            padding: 8px;
-        }
-
-        .signature-title {
-            font-weight: bold;
-            color: #374151;
-        }
-
+        body { background: #f5f1eb; color: #172033; font-size: 13px; }
+        .print-shell { max-width: 1180px; margin: 24px auto; background: #fff; border-radius: 18px; box-shadow: 0 12px 40px rgba(0,0,0,.08); overflow: hidden; }
+        .report-top { padding: 24px 28px; border-bottom: 1px solid #ead9c5; background: linear-gradient(135deg, #fffaf4, #ffffff); }
+        .brand { display:flex; gap:14px; align-items:center; }
+        .brand img { width:58px; height:58px; object-fit:contain; }
+        .brand h1 { font-size: 25px; margin: 0; font-weight: 800; }
+        .brand p { margin: 3px 0 0; color: #6d6258; }
+        .status-pill { border-radius: 999px; padding: 8px 14px; font-weight: 700; background: #eef2ff; color: #283b8f; }
+        .meta-grid { display:grid; grid-template-columns: repeat(4, 1fr); gap: 12px; padding: 18px 28px; border-bottom: 1px solid #ead9c5; }
+        .meta-box { border:1px solid #ead9c5; border-radius: 14px; padding: 12px; background:#fffaf4; min-height:70px; }
+        .meta-label { font-size:10px; text-transform:uppercase; color:#8b735b; letter-spacing:.08em; margin-bottom:6px; }
+        .meta-value { font-weight:700; color:#172033; }
+        .content { padding: 24px 28px 32px; }
+        .section { margin-bottom: 22px; page-break-inside: avoid; }
+        .section-title { font-size: 15px; font-weight: 800; margin-bottom: 10px; display:flex; align-items:center; gap:8px; }
+        .section-title span { width:24px; height:24px; border-radius:8px; display:inline-flex; align-items:center; justify-content:center; background:#b78345; color:#fff; font-size:12px; }
+        table { width:100%; border-collapse: collapse; }
+        th { background:#fffaf4 !important; color:#4f3f2f; font-size:11px; text-transform:uppercase; letter-spacing:.06em; border:1px solid #ead9c5; padding:9px; }
+        td { border:1px solid #ead9c5; padding:9px; vertical-align:top; }
+        .empty { color:#8b735b; font-style:italic; padding: 14px; border:1px dashed #d8c1a6; border-radius:12px; background:#fffaf4; }
+        .review-panel { border:1px solid #ead9c5; border-radius:16px; padding:16px; background:#fffaf4; }
+        .actions-bar { position: sticky; bottom: 0; background:#fff; border-top:1px solid #ead9c5; padding:14px 28px; display:flex; justify-content:space-between; gap:10px; }
+        .btn-rd { background:#b78345; color:#fff; border:none; }
+        .btn-rd:hover { background:#966933; color:#fff; }
         @media print {
-            body {
-                background: #ffffff;
-            }
-
-            .print-toolbar {
-                display: none !important;
-            }
-
-            .page {
-                width: auto;
-                min-height: auto;
-                margin: 0;
-                padding: 0;
-                box-shadow: none;
-            }
-
-            .section {
-                page-break-inside: avoid;
-            }
+            body { background:#fff; }
+            .print-shell { max-width: none; margin:0; box-shadow:none; border-radius:0; }
+            .actions-bar, .no-print { display:none !important; }
+            .report-top, .meta-grid, .content { padding-left:0; padding-right:0; }
+            .section { page-break-inside: avoid; }
+            @page { size: A4; margin: 12mm; }
         }
+        @media (max-width: 992px) { .meta-grid { grid-template-columns: repeat(2, 1fr); } }
+        @media (max-width: 576px) { .meta-grid { grid-template-columns: 1fr; } }
     </style>
 </head>
-
 <body>
-
-<div class="print-toolbar">
-    <a href="{% url 'daily_report_list' %}" class="btn">Back</a>
-    <button onclick="window.print()" class="btn btn-primary">Print A4</button>
-</div>
-
-<div class="page">
-
-    <div class="header">
-        <img src="{% static 'reports/images/logord.png' %}" class="logo" alt="RD Logo">
-
-        <div class="title">
-            <h1>Daily Site Report</h1>
-            <p>Raffoul Development — Internal Operations Platform</p>
+<div class="print-shell">
+    <div class="report-top d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3">
+        <div class="brand">
+            <img src="{% static 'reports/images/logord.png' %}" alt="RD Logo">
+            <div>
+                <h1>Daily Site Report</h1>
+                <p>Review / print page for Project Manager and management users</p>
+            </div>
         </div>
-
-        <div class="meta">
-            <div class="meta-row">
-                <div class="meta-label">Date</div>
-                <div class="meta-value">{{ report.reference_date }}</div>
-            </div>
-            <div class="meta-row">
-                <div class="meta-label">Status</div>
-                <div class="meta-value">{{ report.get_status_display }}</div>
-            </div>
-            <div class="meta-row">
-                <div class="meta-label">Printed</div>
-                <div class="meta-value">{% now "Y-m-d H:i" %}</div>
-            </div>
+        <div class="d-flex gap-2 align-items-center">
+            <span class="status-pill">{{ report.get_status_display }}</span>
+            <button type="button" class="btn btn-rd no-print" onclick="window.print()">
+                <i class="bi bi-printer me-1"></i> Print
+            </button>
         </div>
     </div>
 
-    <div class="section">
-        <div class="section-title">1. Project & Report Information</div>
-        <table>
-            <tr>
-                <th>Project</th>
-                <td>{{ report.project }}</td>
-                <th>Created By</th>
-                <td>{{ report.created_by|default:"-" }}</td>
-            </tr>
-            <tr>
-                <th>Weather</th>
-                <td>{{ report.weather_condition|default:"-" }}</td>
-                <th>Temperature</th>
-                <td>{% if report.temperature %}{{ report.temperature }}°C{% else %}-{% endif %}</td>
-            </tr>
-            <tr>
-                <th>Submitted At</th>
-                <td>{% if report.submitted_at %}{{ report.submitted_at|date:"Y-m-d H:i" }}{% else %}-{% endif %}</td>
-                <th>Reviewed By</th>
-                <td>{{ report.reviewed_by|default:"-" }}</td>
-            </tr>
-        </table>
+    <div class="meta-grid">
+        <div class="meta-box"><div class="meta-label">Project</div><div class="meta-value">{{ report.project }}</div></div>
+        <div class="meta-box"><div class="meta-label">Report Date</div><div class="meta-value">{{ report.reference_date }}</div></div>
+        <div class="meta-box"><div class="meta-label">Site Engineer</div><div class="meta-value">{% if report.created_by %}{{ report.created_by.get_full_name|default:report.created_by.username }}{% else %}-{% endif %}</div></div>
+        <div class="meta-box"><div class="meta-label">Last Updated</div><div class="meta-value">{{ report.updated_at|date:"Y-m-d H:i" }}</div></div>
+        <div class="meta-box"><div class="meta-label">Weather</div><div class="meta-value">{{ report.weather_condition|default:"-" }}</div></div>
+        <div class="meta-box"><div class="meta-label">Temperature</div><div class="meta-value">{% if report.temperature %}{{ report.temperature }}°C{% else %}-{% endif %}</div></div>
+        <div class="meta-box"><div class="meta-label">Submitted At</div><div class="meta-value">{% if report.submitted_at %}{{ report.submitted_at|date:"Y-m-d H:i" }}{% else %}-{% endif %}</div></div>
+        <div class="meta-box"><div class="meta-label">Reviewed By</div><div class="meta-value">{% if report.reviewed_by %}{{ report.reviewed_by.username }}{% else %}-{% endif %}</div></div>
     </div>
 
-    <div class="section">
-        <div class="section-title">2. Active Works</div>
-        {% if report.work_progress_items.all %}
-            <table>
-                <thead>
-                    <tr>
-                        <th>Master Code</th>
-                        <th>Description</th>
-                        <th>Floor / Area</th>
-                        <th>Qty</th>
-                        <th>Unit</th>
-                        <th>Notes</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for item in report.work_progress_items.all %}
+    <div class="content">
+        {% if report.general_notes %}
+            <div class="section">
+                <div class="section-title"><span>0</span> General Notes</div>
+                <div class="review-panel">{{ report.general_notes|linebreaksbr }}</div>
+            </div>
+        {% endif %}
+
+        <div class="section">
+            <div class="section-title"><span>1</span> Active Works</div>
+            {% if work_progress_items %}
+                <table>
+                    <thead><tr><th>Code</th><th>Description</th><th>Floor</th><th>Qty</th><th>Unit</th><th>Notes</th></tr></thead>
+                    <tbody>
+                    {% for item in work_progress_items %}
                         <tr>
-                            <td>{{ item.master_code|default:"-" }}</td>
+                            <td>{% if item.master_code %}{{ item.master_code.code|default:"-" }}{% else %}-{% endif %}</td>
                             <td>{{ item.description|default:"-" }}</td>
-                            <td>{{ item.project_area|default:"-" }}</td>
+                            <td>{% if item.project_area %}{{ item.project_area }}{% else %}-{% endif %}</td>
                             <td>{{ item.quantity|default:"-" }}</td>
                             <td>{{ item.unit|default:"-" }}</td>
                             <td>{{ item.notes|default:"-" }}</td>
                         </tr>
                     {% endfor %}
-                </tbody>
-            </table>
-        {% else %}
-            <div class="empty">No active works recorded.</div>
-        {% endif %}
-    </div>
-
-    <div class="section">
-        <div class="section-title">3. Blocked Issues</div>
-        {% if report.blocked_issues.all %}
-            <table>
-                <thead>
-                    <tr>
-                        <th>Master Code</th>
-                        <th>Issue</th>
-                        <th>Reason</th>
-                        <th>Suggested Solution</th>
-                        <th>PM Status</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for issue in report.blocked_issues.all %}
-                        <tr>
-                            <td>{{ issue.master_code|default:"-" }}</td>
-                            <td>{{ issue.issue|default:"-" }}</td>
-                            <td>{{ issue.reason|default:"-" }}</td>
-                            <td>{{ issue.suggested_solution|default:"-" }}</td>
-                            <td>{{ issue.get_pm_status_display }}</td>
-                        </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        {% else %}
-            <div class="empty">No blocked issues recorded.</div>
-        {% endif %}
-    </div>
-
-    <div class="section">
-        <div class="section-title">4. Site Visits</div>
-        {% if report.site_visits.all %}
-            <table>
-                <thead>
-                    <tr>
-                        <th>Visit Code</th>
-                        <th>Visitor</th>
-                        <th>Entity</th>
-                        <th>Purpose</th>
-                        <th>Time</th>
-                        <th>Notes</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for visit in report.site_visits.all %}
-                        <tr>
-                            <td>{{ visit.visit_code|default:"-" }}</td>
-                            <td>{{ visit.visitor_name|default:"-" }}</td>
-                            <td>{{ visit.visitor_entity|default:"-" }}</td>
-                            <td>{{ visit.purpose|default:"-" }}</td>
-                            <td>{{ visit.visit_time|default:"-" }}</td>
-                            <td>{{ visit.notes|default:"-" }}</td>
-                        </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        {% else %}
-            <div class="empty">No site visits recorded.</div>
-        {% endif %}
-    </div>
-
-    <div class="section">
-        <div class="section-title">5. Workforce Entries</div>
-        {% if report.workforce_entries.all %}
-            <table>
-                <thead>
-                    <tr>
-                        <th>Master Code</th>
-                        <th>Worker</th>
-                        <th>Source</th>
-                        <th>Company</th>
-                        <th>Skill</th>
-                        <th>Normal</th>
-                        <th>OT</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for worker in report.workforce_entries.all %}
-                        <tr>
-                            <td>{{ worker.master_code|default:"-" }}</td>
-                            <td>{{ worker.worker_name|default:"-" }}</td>
-                            <td>{{ worker.get_worker_source_display|default:"-" }}</td>
-                            <td>{{ worker.company_name|default:"-" }}</td>
-                            <td>{{ worker.get_skill_level_display|default:"-" }}</td>
-                            <td>{{ worker.normal_hours }}</td>
-                            <td>{{ worker.overtime_hours }}</td>
-                        </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        {% else %}
-            <div class="empty">No workforce entries recorded.</div>
-        {% endif %}
-    </div>
-
-    <div class="section">
-        <div class="section-title">6. Equipment Usage</div>
-        {% if report.equipment_usages.all %}
-            <table>
-                <thead>
-                    <tr>
-                        <th>Master Code</th>
-                        <th>Equipment</th>
-                        <th>Qty</th>
-                        <th>Working Hours</th>
-                        <th>Idle Hours</th>
-                        <th>Notes</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for equipment in report.equipment_usages.all %}
-                        <tr>
-                            <td>{{ equipment.master_code|default:"-" }}</td>
-                            <td>{{ equipment.equipment|default:"-" }}</td>
-                            <td>{{ equipment.quantity }}</td>
-                            <td>{{ equipment.working_hours }}</td>
-                            <td>{{ equipment.idle_hours }}</td>
-                            <td>{{ equipment.notes|default:"-" }}</td>
-                        </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        {% else %}
-            <div class="empty">No equipment usage recorded.</div>
-        {% endif %}
-    </div>
-
-    <div class="section">
-        <div class="section-title">7. Material Receipts</div>
-        {% if report.material_receipts.all %}
-            <table>
-                <thead>
-                    <tr>
-                        <th>Master Code</th>
-                        <th>Material</th>
-                        <th>Qty</th>
-                        <th>Unit</th>
-                        <th>Supplier</th>
-                        <th>Delivery Note</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for material in report.material_receipts.all %}
-                        <tr>
-                            <td>{{ material.master_code|default:"-" }}</td>
-                            <td>{{ material.material_name|default:"-" }}</td>
-                            <td>{{ material.quantity|default:"-" }}</td>
-                            <td>{{ material.unit|default:"-" }}</td>
-                            <td>{{ material.supplier|default:"-" }}</td>
-                            <td>{{ material.delivery_note_number|default:"-" }}</td>
-                        </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        {% else %}
-            <div class="empty">No material receipts recorded.</div>
-        {% endif %}
-    </div>
-
-    <div class="section">
-        <div class="section-title">8. General Notes</div>
-        <div class="note-box">{{ report.general_notes|default:"No general notes." }}</div>
-    </div>
-
-    <div class="section">
-        <div class="section-title">9. Review Note</div>
-        <div class="note-box">{{ report.review_note|default:"No review note." }}</div>
-    </div>
-
-    <div class="signatures">
-        <div class="signature-box">
-            <div class="signature-title">Prepared By</div>
-            <br>
-            {{ report.created_by|default:"-" }}
+                    </tbody>
+                </table>
+            {% else %}<div class="empty">No active works recorded.</div>{% endif %}
         </div>
 
-        <div class="signature-box">
-            <div class="signature-title">Project Manager</div>
-            <br>
-            {{ report.reviewed_by|default:"-" }}
+        <div class="section">
+            <div class="section-title"><span>2</span> Blocked Issues</div>
+            {% if blocked_issue_items %}
+                <table>
+                    <thead><tr><th>Code</th><th>Issue</th><th>Reason</th><th>Suggested Solution</th><th>PM Status</th></tr></thead>
+                    <tbody>
+                    {% for item in blocked_issue_items %}
+                        <tr>
+                            <td>{% if item.master_code %}{{ item.master_code.code|default:"-" }}{% else %}-{% endif %}</td>
+                            <td>{{ item.issue|default:"-" }}</td>
+                            <td>{{ item.reason|default:"-" }}</td>
+                            <td>{{ item.suggested_solution|default:"-" }}</td>
+                            <td>{{ item.pm_status|default:"Open" }}</td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}<div class="empty">No blocked issues recorded.</div>{% endif %}
         </div>
 
-        <div class="signature-box">
-            <div class="signature-title">Signature / Stamp</div>
+        <div class="section">
+            <div class="section-title"><span>3</span> Workforce</div>
+            {% if workforce_items %}
+                <table>
+                    <thead><tr><th>Code</th><th>Worker</th><th>Source</th><th>Company</th><th>Skill</th><th>Basic</th><th>OT</th><th>Notes</th></tr></thead>
+                    <tbody>
+                    {% for item in workforce_items %}
+                        <tr>
+                            <td>{% if item.master_code %}{{ item.master_code.code|default:"-" }}{% else %}-{% endif %}</td>
+                            <td>{{ item.worker_name|default:"-" }}</td>
+                            <td>{{ item.worker_source|default:"-" }}</td>
+                            <td>{{ item.company_name|default:"-" }}</td>
+                            <td>{{ item.skill_level|default:"-" }}</td>
+                            <td>{{ item.normal_hours|default:"-" }}</td>
+                            <td>{{ item.overtime_hours|default:"-" }}</td>
+                            <td>{{ item.notes|default:"-" }}</td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}<div class="empty">No workforce entries recorded.</div>{% endif %}
+        </div>
+
+        <div class="section">
+            <div class="section-title"><span>4</span> Equipment Usage</div>
+            {% if equipment_items %}
+                <table>
+                    <thead><tr><th>Code</th><th>Equipment</th><th>Qty</th><th>Working Hours</th><th>Idle Hours</th><th>Notes</th></tr></thead>
+                    <tbody>
+                    {% for item in equipment_items %}
+                        <tr>
+                            <td>{% if item.master_code %}{{ item.master_code.code|default:"-" }}{% else %}-{% endif %}</td>
+                            <td>{% if item.equipment %}{{ item.equipment }}{% else %}-{% endif %}</td>
+                            <td>{{ item.quantity|default:"-" }}</td>
+                            <td>{{ item.working_hours|default:"-" }}</td>
+                            <td>{{ item.idle_hours|default:"-" }}</td>
+                            <td>{{ item.notes|default:"-" }}</td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}<div class="empty">No equipment usage recorded.</div>{% endif %}
+        </div>
+
+        <div class="section">
+            <div class="section-title"><span>5</span> Material Receipts</div>
+            {% if material_items %}
+                <table>
+                    <thead><tr><th>Code</th><th>Material</th><th>Qty</th><th>Unit</th><th>Supplier</th><th>Delivery Note</th><th>Notes</th></tr></thead>
+                    <tbody>
+                    {% for item in material_items %}
+                        <tr>
+                            <td>{% if item.master_code %}{{ item.master_code.code|default:"-" }}{% else %}-{% endif %}</td>
+                            <td>{{ item.material_name|default:"-" }}</td>
+                            <td>{{ item.quantity|default:"-" }}</td>
+                            <td>{{ item.unit|default:"-" }}</td>
+                            <td>{{ item.supplier|default:"-" }}</td>
+                            <td>{{ item.delivery_note_number|default:"-" }}</td>
+                            <td>{{ item.notes|default:"-" }}</td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}<div class="empty">No material receipts recorded.</div>{% endif %}
+        </div>
+
+        <div class="section">
+            <div class="section-title"><span>6</span> Site Visits</div>
+            {% if site_visit_items %}
+                <table>
+                    <thead><tr><th>Visit Code</th><th>Visitor</th><th>Entity</th><th>Purpose</th><th>Time</th><th>Notes</th></tr></thead>
+                    <tbody>
+                    {% for item in site_visit_items %}
+                        <tr>
+                            <td>{{ item.visit_code|default:"-" }}</td>
+                            <td>{{ item.visitor_name|default:"-" }}</td>
+                            <td>{{ item.visitor_entity|default:"-" }}</td>
+                            <td>{{ item.purpose|default:"-" }}</td>
+                            <td>{{ item.visit_time|default:"-" }}</td>
+                            <td>{{ item.notes|default:"-" }}</td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}<div class="empty">No site visits recorded.</div>{% endif %}
+        </div>
+
+        <div class="section">
+            <div class="section-title"><span>7</span> General Attachments</div>
+            {% if attachment_items %}
+                <table>
+                    <thead><tr><th>File</th><th>Uploaded At</th></tr></thead>
+                    <tbody>
+                    {% for item in attachment_items %}
+                        <tr>
+                            <td>{% if item.file %}<a href="{{ item.file.url }}" target="_blank">{{ item.file.name }}</a>{% else %}-{% endif %}</td>
+                            <td>{{ item.uploaded_at|date:"Y-m-d H:i" }}</td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}<div class="empty">No general attachments recorded.</div>{% endif %}
+        </div>
+
+        <div class="section">
+            <div class="section-title"><span>8</span> Project Manager Review</div>
+            <div class="review-panel">
+                <p class="mb-2"><strong>Current Status:</strong> {{ report.get_status_display }}</p>
+                <p class="mb-2"><strong>Review Note:</strong> {{ report.review_note|default:"-" }}</p>
+                <p class="mb-0"><strong>Returned Count:</strong> {{ report.returned_count|default:"0" }}</p>
+            </div>
+
+            {% if can_pm_review and report.status == "submitted" %}
+                <form method="post" class="review-panel mt-3 no-print">
+                    {% csrf_token %}
+                    <label class="form-label fw-bold">Review Note</label>
+                    <textarea class="form-control mb-3" rows="3" name="review_note" placeholder="Write approval, return, or rejection note..."></textarea>
+                    <div class="d-flex flex-wrap gap-2 justify-content-end">
+                        <button type="submit" formaction="{% url 'daily_report_approve' report.pk %}" class="btn btn-success">
+                            <i class="bi bi-check-circle me-1"></i> Approve
+                        </button>
+                        <button type="submit" formaction="{% url 'daily_report_return' report.pk %}" class="btn btn-warning">
+                            <i class="bi bi-arrow-return-left me-1"></i> Return
+                        </button>
+                        <button type="submit" formaction="{% url 'daily_report_reject' report.pk %}" class="btn btn-danger">
+                            <i class="bi bi-x-circle me-1"></i> Reject
+                        </button>
+                    </div>
+                </form>
+            {% endif %}
         </div>
     </div>
 
+    <div class="actions-bar no-print">
+        <div class="d-flex gap-2">
+            <a href="{% url 'daily_report_list' %}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left me-1"></i> Back to Reports
+            </a>
+            {% if not can_pm_review %}
+                <a href="{% url 'daily_report_edit' report.pk %}" class="btn btn-outline-primary">
+                    <i class="bi bi-pencil-square me-1"></i> Edit Form
+                </a>
+            {% endif %}
+        </div>
+        <button type="button" class="btn btn-rd" onclick="window.print()">
+            <i class="bi bi-printer me-1"></i> Print Full Report
+        </button>
+    </div>
 </div>
-
 </body>
 </html>

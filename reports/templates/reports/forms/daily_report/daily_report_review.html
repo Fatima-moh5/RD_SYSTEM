@@ -1,0 +1,345 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="container-fluid py-4">
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-1">Daily Report Review</h2>
+            <p class="text-muted mb-0">
+                Project Manager review page
+            </p>
+        </div>
+
+        <div class="d-flex gap-2">
+            <a href="{% url 'daily_report_list' %}" class="btn btn-outline-secondary">
+                Back
+            </a>
+
+            <a href="{% url 'daily_report_print' report.pk %}" target="_blank" class="btn btn-dark">
+                Print
+            </a>
+        </div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header fw-bold">
+            Report Information
+        </div>
+
+        <div class="card-body">
+            <div class="row g-3">
+
+                <div class="col-md-3">
+                    <strong>Project</strong><br>
+                    {{ report.project }}
+                </div>
+
+                <div class="col-md-3">
+                    <strong>Date</strong><br>
+                    {{ report.reference_date }}
+                </div>
+
+                <div class="col-md-3">
+                    <strong>Engineer</strong><br>
+                    {{ report.created_by }}
+                </div>
+
+                <div class="col-md-3">
+                    <strong>Status</strong><br>
+                    {{ report.status }}
+                </div>
+
+                <div class="col-md-3">
+                    <strong>Weather</strong><br>
+                    {{ report.weather_condition }}
+                    {% if report.temperature %}
+                        / {{ report.temperature }}°C
+                    {% endif %}
+                </div>
+
+                <div class="col-md-9">
+                    <strong>General Notes</strong><br>
+                    {{ report.general_notes|default:"-" }}
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header fw-bold">
+            Active Works
+        </div>
+
+        <div class="card-body p-0">
+            <table class="table table-bordered mb-0">
+                <thead>
+                    <tr>
+                        <th>Code</th>
+                        <th>Description</th>
+                        <th>Floor</th>
+                        <th>Quantity</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    {% for item in work_progress_items %}
+                        <tr>
+                            <td>{{ item.master_code|default:"-" }}</td>
+                            <td>{{ item.description|default:"-" }}</td>
+                            <td>{{ item.floor|default:"-" }}</td>
+                            <td>
+                                {{ item.quantity|default:"-" }}
+                                {{ item.unit|default:"" }}
+                            </td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="4" class="text-center text-muted">
+                                No active works.
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header fw-bold">
+            Blocked Issues
+        </div>
+
+        <div class="card-body p-0">
+            <table class="table table-bordered mb-0">
+                <thead>
+                    <tr>
+                        <th>Issue</th>
+                        <th>Impact</th>
+                        <th>Suggested Solution</th>
+                        <th>PM Status</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    {% for item in blocked_issue_items %}
+                        <tr>
+                            <td>{{ item.issue_description|default:"-" }}</td>
+                            <td>{{ item.impact|default:"-" }}</td>
+                            <td>{{ item.suggested_solution|default:"-" }}</td>
+                            <td>{{ item.pm_status|default:"-" }}</td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="4" class="text-center text-muted">
+                                No blocked issues.
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header fw-bold">
+            Workforce
+        </div>
+
+        <div class="card-body p-0">
+            <table class="table table-bordered mb-0">
+                <thead>
+                    <tr>
+                        <th>Trade</th>
+                        <th>Workers</th>
+                        <th>Hours</th>
+                        <th>Notes</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    {% for item in workforce_items %}
+                        <tr>
+                            <td>{{ item.trade|default:"-" }}</td>
+                            <td>{{ item.number_of_workers|default:"-" }}</td>
+                            <td>{{ item.hours_worked|default:"-" }}</td>
+                            <td>{{ item.notes|default:"-" }}</td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="4" class="text-center text-muted">
+                                No workforce entries.
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header fw-bold">
+            Equipment
+        </div>
+
+        <div class="card-body p-0">
+            <table class="table table-bordered mb-0">
+                <thead>
+                    <tr>
+                        <th>Equipment</th>
+                        <th>Quantity</th>
+                        <th>Hours</th>
+                        <th>Notes</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    {% for item in equipment_items %}
+                        <tr>
+                            <td>{{ item.equipment|default:"-" }}</td>
+                            <td>{{ item.quantity|default:"-" }}</td>
+                            <td>{{ item.hours_used|default:"-" }}</td>
+                            <td>{{ item.notes|default:"-" }}</td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="4" class="text-center text-muted">
+                                No equipment entries.
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header fw-bold">
+            Materials
+        </div>
+
+        <div class="card-body p-0">
+            <table class="table table-bordered mb-0">
+                <thead>
+                    <tr>
+                        <th>Material</th>
+                        <th>Quantity</th>
+                        <th>Supplier</th>
+                        <th>Notes</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    {% for item in material_items %}
+                        <tr>
+                            <td>{{ item.material|default:"-" }}</td>
+                            <td>
+                                {{ item.quantity|default:"-" }}
+                                {{ item.unit|default:"" }}
+                            </td>
+                            <td>{{ item.supplier|default:"-" }}</td>
+                            <td>{{ item.notes|default:"-" }}</td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="4" class="text-center text-muted">
+                                No material entries.
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header fw-bold">
+            Site Visits
+        </div>
+
+        <div class="card-body p-0">
+            <table class="table table-bordered mb-0">
+                <thead>
+                    <tr>
+                        <th>Visitor</th>
+                        <th>Purpose</th>
+                        <th>Notes</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    {% for item in site_visit_items %}
+                        <tr>
+                            <td>{{ item.visitor_name|default:"-" }}</td>
+                            <td>{{ item.purpose|default:"-" }}</td>
+                            <td>{{ item.notes|default:"-" }}</td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="3" class="text-center text-muted">
+                                No site visits.
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header fw-bold">
+            Attachments
+        </div>
+
+        <div class="card-body">
+            {% for item in attachment_items %}
+                <div class="mb-2">
+                    <a href="{{ item.file.url }}" target="_blank">
+                        {{ item.file.name }}
+                    </a>
+                </div>
+            {% empty %}
+                <p class="text-muted mb-0">No attachments.</p>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header fw-bold">
+            PM Review Action
+        </div>
+
+        <div class="card-body">
+
+            <form method="post" action="{% url 'daily_report_approve' report.pk %}" class="mb-3">
+                {% csrf_token %}
+                <textarea name="review_note" class="form-control mb-2" rows="2" placeholder="Approval note optional"></textarea>
+                <button type="submit" class="btn btn-success">
+                    Approve
+                </button>
+            </form>
+
+            <form method="post" action="{% url 'daily_report_return' report.pk %}" class="mb-3">
+                {% csrf_token %}
+                <textarea name="review_note" class="form-control mb-2" rows="2" placeholder="Return note required" required></textarea>
+                <button type="submit" class="btn btn-warning">
+                    Return for Correction
+                </button>
+            </form>
+
+            <form method="post" action="{% url 'daily_report_reject' report.pk %}">
+                {% csrf_token %}
+                <textarea name="review_note" class="form-control mb-2" rows="2" placeholder="Reject reason required" required></textarea>
+                <button type="submit" class="btn btn-danger">
+                    Reject
+                </button>
+            </form>
+
+        </div>
+    </div>
+
+</div>
+
+{% endblock %}

@@ -35,8 +35,10 @@ from reports.models import (
 
 from reports.services.weather_service import fetch_weather
 
+
 DAILY_REPORT_FORM_TEMPLATE = "reports/forms/daily_report/daily_report_form.html"
 DAILY_REPORT_LIST_TEMPLATE = "reports/forms/daily_report/daily_report_list.html"
+DAILY_REPORT_REVIEW_TEMPLATE = "reports/forms/daily_report/daily_report_review.html"
 DAILY_REPORT_PRINT_TEMPLATE = "reports/forms/daily_report/daily_report_print.html"
 
 
@@ -52,6 +54,15 @@ def can_view_all_reports(user):
         or user_in_group(user, "dep_mgr")
         or user_in_group(user, "operations")
         or user_in_group(user, "Cost_Control")
+    )
+
+
+def is_project_manager(user):
+    return (
+        user.is_superuser
+        or user_in_group(user, "Project_mgr")
+        or user_in_group(user, "dep_mgr")
+        or user_in_group(user, "operations")
     )
 
 
@@ -103,21 +114,13 @@ def check_report_permission(user, report):
 
     raise PermissionDenied("You do not have permission to access this report.")
 
-def is_project_manager(user):
-    return (
-        user.is_superuser
-        or user_in_group(user, "Project_mgr")
-        or user_in_group(user, "dep_mgr")
-        or user_in_group(user, "operations")
-    )
-
 
 def can_edit_report(user, report):
     if user.is_superuser:
         return True
 
     if is_project_manager(user):
-        return True
+        return False
 
     if report.created_by_id != user.id:
         return False
@@ -126,6 +129,34 @@ def can_edit_report(user, report):
         DailyReport.STATUS_DRAFT,
         DailyReport.STATUS_RETURNED,
     ]
+
+
+def get_related_items(report, model_name_keyword):
+    for relation in report._meta.related_objects:
+        model_name = relation.related_model.__name__.lower()
+        accessor = relation.get_accessor_name()
+
+        if model_name_keyword.lower() in model_name:
+            manager = getattr(report, accessor, None)
+
+            if manager is not None:
+                try:
+                    return manager.all()
+                except Exception:
+                    return []
+
+    return []
+
+
+def safe_set_attr(instance, field_name, value):
+    field_names = {field.name for field in instance._meta.fields}
+
+    if field_name in field_names:
+        setattr(instance, field_name, value)
+        return True
+
+    return False
+
 
 def get_week_range(today):
     start = today - timedelta(days=today.weekday())
@@ -297,6 +328,7 @@ def daily_report_list(request):
         "selected_project": project_id,
         "selected_status": status,
         "can_view_all": can_view_all_reports(request.user),
+        "can_pm_review": is_project_manager(request.user),
     }
 
     return render(request, DAILY_REPORT_LIST_TEMPLATE, context)
@@ -329,8 +361,10 @@ def daily_report_create(request):
 
     try:
         weather_loaded = apply_weather_to_report(report, default_project)
+
         if not weather_loaded:
             weather_warning = "Project latitude/longitude is missing. Weather was not loaded."
+
     except Exception as e:
         weather_warning = f"Weather API failed: {str(e)}"
 
@@ -428,9 +462,18 @@ def daily_report_create(request):
 def daily_report_edit(request, pk):
     report = get_object_or_404(DailyReport, pk=pk)
     check_report_permission(request.user, report)
+
+    if is_project_manager(request.user) and not request.user.is_superuser:
+        return redirect("daily_report_review", pk=report.pk)
+
     if request.method == "POST" and not can_edit_report(request.user, report):
         messages.error(request, "This report is locked and cannot be edited.")
-        return redirect("daily_report_edit", pk=report.pk)
+
+        if is_project_manager(request.user):
+            return redirect("daily_report_review", pk=report.pk)
+
+        return redirect("daily_report_print", pk=report.pk)
+
     assigned_projects = get_assigned_projects(request.user)
 
     tracked_fields = [
@@ -466,7 +509,6 @@ def daily_report_edit(request, pk):
         )
 
         if form.is_valid() and formsets_are_valid(formsets):
-
             report = form.save(commit=False)
 
             action = request.POST.get("action", "draft")
@@ -479,6 +521,16 @@ def daily_report_edit(request, pk):
 
             save_formsets(formsets)
             save_attachments(report, request.FILES)
+
+            new_values = {field: getattr(report, field) for field in tracked_fields}
+            changed_fields = log_report_changes(
+                report=report,
+                old_values=old_values,
+                new_values=new_values,
+                user=request.user,
+            )
+
+            request.session["changed_fields"] = changed_fields
 
             messages.success(request, "Daily report updated successfully.")
             return redirect("daily_report_edit", pk=report.pk)
@@ -511,18 +563,49 @@ def daily_report_edit(request, pk):
 
 
 @login_required
+def daily_report_review(request, pk):
+    report = get_object_or_404(DailyReport, pk=pk)
+    check_report_permission(request.user, report)
+
+    if not is_project_manager(request.user):
+        return redirect("daily_report_edit", pk=report.pk)
+
+    context = {
+        "page_title": "Daily Report Review",
+        "report": report,
+        "can_pm_review": True,
+        "work_progress_items": get_related_items(report, "workprogress"),
+        "blocked_issue_items": get_related_items(report, "blockedissue"),
+        "site_visit_items": get_related_items(report, "sitevisit"),
+        "workforce_items": get_related_items(report, "workforce"),
+        "equipment_items": get_related_items(report, "equipment"),
+        "material_items": get_related_items(report, "material"),
+        "attachment_items": get_related_items(report, "attachment"),
+    }
+
+    return render(request, DAILY_REPORT_REVIEW_TEMPLATE, context)
+
+
+@login_required
 def daily_report_print(request, pk):
     report = get_object_or_404(DailyReport, pk=pk)
     check_report_permission(request.user, report)
 
-    return render(
-        request,
-        DAILY_REPORT_PRINT_TEMPLATE,
-        {
-            "page_title": "Print Daily Report",
-            "report": report,
-        },
-    )
+    context = {
+        "page_title": "Daily Report Print",
+        "report": report,
+        "can_pm_review": is_project_manager(request.user),
+        "work_progress_items": get_related_items(report, "workprogress"),
+        "blocked_issue_items": get_related_items(report, "blockedissue"),
+        "site_visit_items": get_related_items(report, "sitevisit"),
+        "workforce_items": get_related_items(report, "workforce"),
+        "equipment_items": get_related_items(report, "equipment"),
+        "material_items": get_related_items(report, "material"),
+        "attachment_items": get_related_items(report, "attachment"),
+    }
+
+    return render(request, DAILY_REPORT_PRINT_TEMPLATE, context)
+
 
 @login_required
 @transaction.atomic
@@ -569,7 +652,7 @@ def daily_report_approve(request, pk):
 
         messages.success(request, "Daily report approved successfully.")
 
-    return redirect("daily_report_edit", pk=report.pk)
+    return redirect("daily_report_review", pk=report.pk)
 
 
 @login_required
@@ -586,7 +669,7 @@ def daily_report_return(request, pk):
 
         if not note:
             messages.error(request, "Return note is required.")
-            return redirect("daily_report_edit", pk=report.pk)
+            return redirect("daily_report_review", pk=report.pk)
 
         report.status = DailyReport.STATUS_RETURNED
         report.reviewed_by = request.user
@@ -604,7 +687,7 @@ def daily_report_return(request, pk):
 
         messages.success(request, "Daily report returned for correction.")
 
-    return redirect("daily_report_edit", pk=report.pk)
+    return redirect("daily_report_review", pk=report.pk)
 
 
 @login_required
@@ -621,7 +704,7 @@ def daily_report_reject(request, pk):
 
         if not note:
             messages.error(request, "Rejection note is required.")
-            return redirect("daily_report_edit", pk=report.pk)
+            return redirect("daily_report_review", pk=report.pk)
 
         report.status = DailyReport.STATUS_REJECTED
         report.reviewed_by = request.user
@@ -637,121 +720,9 @@ def daily_report_reject(request, pk):
 
         messages.success(request, "Daily report rejected.")
 
-    return redirect("daily_report_edit", pk=report.pk)
-
-@login_required
-def blocked_issue_list(request):
-
-    if not is_project_manager(request.user):
-        raise PermissionDenied(
-            "Only Project Manager can access Blocked Issues Center."
-        )
-
-    issues = BlockedIssue.objects.select_related(
-        "report",
-        "report__project",
-        "report__created_by",
-    ).order_by("-created_at")
-
-    status_filter = request.GET.get("status", "")
-    severity_filter = request.GET.get("severity", "")
-
-    if status_filter:
-        issues = issues.filter(pm_status=status_filter)
-
-    if severity_filter:
-        issues = issues.filter(severity=severity_filter)
-
-    context = {
-        "page_title": "Blocked Issues Center",
-        "issues": issues,
-        "selected_status": status_filter,
-        "selected_severity": severity_filter,
-    }
-
-    return render(
-        request,
-        "reports/blocked_issues/blocked_issue_list.html",
-        context,
-    )
+    return redirect("daily_report_review", pk=report.pk)
 
 
-@login_required
-@transaction.atomic
-def blocked_issue_detail(request, pk):
-
-    if not is_project_manager(request.user):
-        raise PermissionDenied(
-            "Only Project Manager can manage blocked issues."
-        )
-
-    issue = get_object_or_404(
-        BlockedIssue.objects.select_related(
-            "report",
-            "report__project",
-            "report__created_by",
-        ),
-        pk=pk,
-    )
-
-    if request.method == "POST":
-
-        issue.pm_status = request.POST.get(
-            "pm_status",
-            issue.pm_status,
-        )
-
-        issue.pm_note = request.POST.get(
-            "pm_note",
-            "",
-        ).strip()
-
-        issue.impact_note = request.POST.get(
-            "impact_note",
-            "",
-        ).strip()
-
-        issue.amended_solution = request.POST.get(
-            "amended_solution",
-            "",
-        ).strip()
-
-        issue.follow_up_with = request.POST.get(
-            "follow_up_with",
-            "",
-        ).strip()
-
-        issue.escalated_to = request.POST.get(
-            "escalated_to",
-            "",
-        ).strip()
-
-        issue.reviewed_by = request.user
-        issue.reviewed_at = timezone.now()
-
-        issue.save()
-
-        messages.success(
-            request,
-            "Blocked issue updated successfully."
-        )
-
-        return redirect(
-            "blocked_issue_detail",
-            pk=issue.pk,
-        )
-
-    context = {
-        "page_title": "Blocked Issue Details",
-        "issue": issue,
-    }
-
-    return render(
-        request,
-        "reports/blocked_issues/blocked_issue_detail.html",
-        context,
-    )
-    
 @login_required
 def blocked_issue_list(request):
     if not is_project_manager(request.user):
@@ -761,9 +732,6 @@ def blocked_issue_list(request):
         "daily_report",
         "daily_report__project",
         "daily_report__created_by",
-        "master_code",
-        "reviewed_by",
-        "escalated_to",
     ).order_by("-created_at")
 
     status_filter = request.GET.get("status", "")
@@ -774,7 +742,8 @@ def blocked_issue_list(request):
         issues = issues.filter(pm_status=status_filter)
 
     if priority_filter:
-        issues = issues.filter(priority__iexact=priority_filter)
+        if any(field.name == "priority" for field in BlockedIssue._meta.fields):
+            issues = issues.filter(priority__iexact=priority_filter)
 
     if project_id:
         issues = issues.filter(daily_report__project_id=project_id)
@@ -794,14 +763,10 @@ def blocked_issue_list(request):
         "selected_status": status_filter,
         "selected_priority": priority_filter,
         "selected_project": project_id,
-        "status_choices": BlockedIssue.STATUS_CHOICES,
+        "status_choices": getattr(BlockedIssue, "STATUS_CHOICES", []),
     }
 
-    return render(
-        request,
-        "reports/blocked_issues/blocked_issue_list.html",
-        context,
-    )
+    return render(request, "reports/blocked_issues/blocked_issue_list.html", context)
 
 
 @login_required
@@ -815,29 +780,35 @@ def blocked_issue_detail(request, pk):
             "daily_report",
             "daily_report__project",
             "daily_report__created_by",
-            "master_code",
-            "reviewed_by",
-            "escalated_to",
         ),
         pk=pk,
     )
 
     if request.method == "POST":
-        issue.pm_status = request.POST.get("pm_status", issue.pm_status)
-        issue.priority = request.POST.get("priority", "").strip()
-        issue.responsible_party = request.POST.get("responsible_party", "").strip()
-        issue.follow_up_with = request.POST.get("follow_up_with", "").strip()
-        issue.impact = request.POST.get("impact", "").strip()
-        issue.amended_solution = request.POST.get("amended_solution", "").strip()
-        issue.pm_note = request.POST.get("pm_note", "").strip()
-        issue.reviewed_by = request.user
-        issue.reviewed_at = timezone.now()
+        safe_set_attr(
+            issue,
+            "pm_status",
+            request.POST.get("pm_status", getattr(issue, "pm_status", "")),
+        )
+        safe_set_attr(issue, "priority", request.POST.get("priority", "").strip())
+        safe_set_attr(issue, "responsible_party", request.POST.get("responsible_party", "").strip())
+        safe_set_attr(issue, "follow_up_with", request.POST.get("follow_up_with", "").strip())
+        safe_set_attr(issue, "impact", request.POST.get("impact", "").strip())
+        safe_set_attr(issue, "impact_note", request.POST.get("impact_note", "").strip())
+        safe_set_attr(issue, "amended_solution", request.POST.get("amended_solution", "").strip())
+        safe_set_attr(issue, "suggested_solution", request.POST.get("suggested_solution", "").strip())
+        safe_set_attr(issue, "pm_note", request.POST.get("pm_note", "").strip())
+        safe_set_attr(issue, "reviewed_by", request.user)
+        safe_set_attr(issue, "reviewed_at", timezone.now())
 
-        if issue.pm_status in [
-            BlockedIssue.STATUS_RESOLVED,
-            BlockedIssue.STATUS_CLOSED,
-        ]:
-            issue.resolved_at = timezone.now()
+        status_value = getattr(issue, "pm_status", "")
+        closed_values = [
+            getattr(BlockedIssue, "STATUS_RESOLVED", "resolved"),
+            getattr(BlockedIssue, "STATUS_CLOSED", "closed"),
+        ]
+
+        if status_value in closed_values:
+            safe_set_attr(issue, "resolved_at", timezone.now())
 
         issue.save()
 
@@ -847,11 +818,7 @@ def blocked_issue_detail(request, pk):
     context = {
         "page_title": "Blocked Issue Details",
         "issue": issue,
-        "status_choices": BlockedIssue.STATUS_CHOICES,
+        "status_choices": getattr(BlockedIssue, "STATUS_CHOICES", []),
     }
 
-    return render(
-        request,
-        "reports/blocked_issues/blocked_issue_detail.html",
-        context,
-    )
+    return render(request, "reports/blocked_issues/blocked_issue_detail.html", context)
