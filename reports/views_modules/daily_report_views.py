@@ -200,9 +200,99 @@ def build_formsets(data=None, report=None, project=None):
     }
 
 
-def formsets_are_valid(formsets):
-    return all(formset.is_valid() for formset in formsets.values())
+def formset_has_data(formset):
+    """
+            Returns True if the user entered real data in at least one row.
+        Empty optional rows are ignored.
+        """
+    for form in formset.forms:
+        if not form.has_changed():
+            continue
 
+        cleaned = getattr(form, "cleaned_data", None)
+        if cleaned and cleaned.get("DELETE"):
+            continue
+
+        return True
+
+    return False
+
+
+def get_formset_friendly_name(key):
+        names = {
+            "work_progress_formset": "Active Works",
+            "blocked_issue_formset": "Blocked Issues",
+            "site_visit_formset": "Site Visits",
+            "workforce_formset": "Workforce",
+            "equipment_formset": "Equipment Usage",
+            "material_formset": "Material Receipts",
+        }
+        return names.get(key, key)
+
+
+def validate_daily_report_for_action(form, formsets, action):
+        """
+        UAT rules:
+        - Save Draft: project/date only.
+        - Submit: project/date/weather + at least one Active Work.
+        - Optional sections may be empty.
+        - If optional section has partially entered data, it must be corrected.
+        """
+        errors = []
+
+        if not form.is_valid():
+            errors.append("Please complete the main report information before saving.")
+            return False, errors
+
+        if action == "draft":
+            return True, errors
+
+        project = form.cleaned_data.get("project")
+        reference_date = form.cleaned_data.get("reference_date")
+        weather_condition = form.cleaned_data.get("weather_condition")
+        temperature = form.cleaned_data.get("temperature")
+
+        if not project:
+            errors.append("Please select the project before submitting the daily report.")
+
+        if not reference_date:
+            errors.append("Please select the report date before submitting.")
+
+        if not weather_condition and temperature in [None, ""]:
+            errors.append(
+                "Weather information is required before submitting. Please confirm the weather or fill it manually."
+            )
+
+        active_work_formset = formsets.get("work_progress_formset")
+
+        if active_work_formset:
+            if not active_work_formset.is_valid():
+                errors.append(
+                    "Active Works has incomplete information. Please complete the highlighted row before submitting."
+                )
+            elif not formset_has_data(active_work_formset):
+                errors.append("Please add at least one Active Work before submitting the daily report.")
+
+        optional_keys = [
+            "blocked_issue_formset",
+            "site_visit_formset",
+            "workforce_formset",
+            "equipment_formset",
+            "material_formset",
+        ]
+
+        for key in optional_keys:
+            formset = formsets.get(key)
+
+            if not formset:
+                continue
+
+            if formset_has_data(formset) and not formset.is_valid():
+                errors.append(
+                    f"{get_formset_friendly_name(key)} has incomplete information. "
+                    f"Please complete the entered row or leave the section empty."
+                )
+        return len(errors) == 0, errors
 
 def save_formsets(formsets):
     for formset in formsets.values():
@@ -385,14 +475,19 @@ def daily_report_create(request):
             project=selected_project,
         )
 
-        if form.is_valid() and formsets_are_valid(formsets):
+        action = request.POST.get("action", "draft")
+        is_ready, validation_errors = validate_daily_report_for_action(
+            form=form,
+            formsets=formsets,
+            action=action,
+        )
+
+        if is_ready:
             report = form.save(commit=False)
             report.created_by = request.user
 
             if not report.project:
                 report.project = default_project
-
-            action = request.POST.get("action", "draft")
 
             if action == "submit":
                 report.status = DailyReport.STATUS_SUBMITTED
@@ -413,14 +508,14 @@ def daily_report_create(request):
                 project=report.project,
             )
 
-            if formsets_are_valid(formsets):
-                save_formsets(formsets)
-                save_attachments(report, request.FILES)
+            save_formsets(formsets)
+            save_attachments(report, request.FILES)
 
             messages.success(request, "Daily report created successfully.")
             return redirect("daily_report_edit", pk=report.pk)
 
-        messages.error(request, "Please correct the errors before saving.")
+        for error in validation_errors:
+            messages.error(request, error)
 
     else:
         initial_data = {
@@ -508,10 +603,15 @@ def daily_report_edit(request, pk):
             project=selected_project,
         )
 
-        if form.is_valid() and formsets_are_valid(formsets):
-            report = form.save(commit=False)
+        action = request.POST.get("action", "draft")
+        is_ready, validation_errors = validate_daily_report_for_action(
+            form=form,
+            formsets=formsets,
+            action=action,
+        )
 
-            action = request.POST.get("action", "draft")
+        if is_ready:
+            report = form.save(commit=False)
 
             if action == "submit":
                 report.status = DailyReport.STATUS_SUBMITTED
@@ -535,7 +635,8 @@ def daily_report_edit(request, pk):
             messages.success(request, "Daily report updated successfully.")
             return redirect("daily_report_edit", pk=report.pk)
 
-        messages.error(request, "Please correct the errors before saving.")
+        for error in validation_errors:
+            messages.error(request, error)
 
     else:
         form = DailyReportForm(
