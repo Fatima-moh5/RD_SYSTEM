@@ -94,7 +94,7 @@ Daily operational reporting, follow-up, and site execution updates.
                     <strong>Status</strong>
 
                     {% if today_report %}
-                        <span>{{ today_report.status }}</span>
+                        <span>{{ today_report.get_status_display }}</span>
                     {% else %}
                         <span>Not Started</span>
                     {% endif %}

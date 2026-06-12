@@ -296,6 +296,22 @@ class WorkerProfile(models.Model):
 
 
 class WorkforceEntry(models.Model):
+    ENTRY_TYPE_RD_WORKER = "rd_worker"
+    ENTRY_TYPE_EXTERNAL = "external"
+
+    ENTRY_TYPE_CHOICES = [
+        (ENTRY_TYPE_RD_WORKER, "RD Worker"),
+        (ENTRY_TYPE_EXTERNAL, "External Labor"),
+    ]
+
+    EXTERNAL_SOURCE_SUBCONTRACTOR = "subcontractor"
+    EXTERNAL_SOURCE_RENTAL = "rental"
+
+    EXTERNAL_SOURCE_CHOICES = [
+        (EXTERNAL_SOURCE_SUBCONTRACTOR, "Subcontractor"),
+        (EXTERNAL_SOURCE_RENTAL, "By Rent"),
+    ]
+
     daily_report = models.ForeignKey(
         DailyReport,
         blank=True,
@@ -303,12 +319,21 @@ class WorkforceEntry(models.Model):
         on_delete=models.CASCADE,
         related_name="workforce_entries",
     )
+
     master_code = models.ForeignKey(
         MasterCode,
         blank=True,
         null=True,
         on_delete=models.PROTECT,
     )
+
+    entry_type = models.CharField(
+        max_length=30,
+        choices=ENTRY_TYPE_CHOICES,
+        default=ENTRY_TYPE_RD_WORKER,
+    )
+
+    # RD Worker
     worker = models.ForeignKey(
         WorkerProfile,
         blank=True,
@@ -317,14 +342,13 @@ class WorkforceEntry(models.Model):
         related_name="daily_entries",
     )
 
-    worker_name = models.CharField(max_length=255, blank=True, default="")
-    worker_source = models.CharField(
-        max_length=50,
-        choices=WorkerProfile.SOURCE_CHOICES,
+    # Rental worker manual name
+    worker_name = models.CharField(
+        max_length=255,
         blank=True,
         default="",
     )
-    company_name = models.CharField(max_length=255, blank=True, default="")
+
     skill_level = models.CharField(
         max_length=50,
         choices=WorkerProfile.SKILL_CHOICES,
@@ -332,39 +356,107 @@ class WorkforceEntry(models.Model):
         default="",
     )
 
-    normal_hours = models.DecimalField(max_digits=6, decimal_places=2, default=0)
-    overtime_hours = models.DecimalField(max_digits=6, decimal_places=2, default=0)
-    notes = models.TextField(blank=True, default="")
+    login_time = models.TimeField(blank=True, null=True)
+    logout_time = models.TimeField(blank=True, null=True)
 
+    sent_to_other_project = models.BooleanField(default=False)
+
+    # External Labor
+    external_source_type = models.CharField(
+        max_length=50,
+        choices=EXTERNAL_SOURCE_CHOICES,
+        blank=True,
+        default="",
+    )
+
+    external_source_name = models.CharField(
+        max_length=255,
+        blank=True,
+        default="",
+    )
+
+    trade_work_type = models.CharField(
+        max_length=255,
+        blank=True,
+        default="",
+    )
+
+    number_of_workers = models.PositiveIntegerField(
+        blank=True,
+        null=True,
+    )
+
+    notes = models.TextField(blank=True, default="")
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        ordering = ["worker_name"]
+        ordering = [
+            "entry_type",
+            "external_source_type",
+            "worker__name",
+            "worker_name",
+            "external_source_name",
+        ]
 
-    def save(self, *args, **kwargs):
-        if self.worker:
-            self.worker_name = self.worker.name
-            self.worker_source = self.worker.worker_source
-            self.company_name = self.worker.company_name
-            self.skill_level = self.worker.skill_level
-        elif self.worker_name:
-            worker, created = WorkerProfile.objects.get_or_create(
-                name=self.worker_name.strip(),
-                worker_source=self.worker_source or WorkerProfile.SOURCE_COMPANY,
-                company_name=self.company_name or "",
-                defaults={
-                    "skill_level": self.skill_level or "",
-                    "is_active": True,
-                },
-            )
-            self.worker = worker
+    def clean(self):
+        from django.core.exceptions import ValidationError
 
-        super().save(*args, **kwargs)
+        errors = {}
+
+        if not self.skill_level:
+            errors["skill_level"] = "Skill level is required."
+
+        if self.entry_type == self.ENTRY_TYPE_RD_WORKER:
+            if not self.worker:
+                errors["worker"] = "RD Worker is required."
+
+            if not self.login_time:
+                errors["login_time"] = "Login time is required."
+
+            if not self.logout_time:
+                errors["logout_time"] = "Logout time is required."
+
+        elif self.entry_type == self.ENTRY_TYPE_EXTERNAL:
+            if not self.external_source_type:
+                errors["external_source_type"] = "Labor type is required."
+
+            if self.external_source_type == self.EXTERNAL_SOURCE_RENTAL:
+                if not self.external_source_name:
+                    errors["external_source_name"] = "Rental company/source is required."
+
+                if not self.worker_name:
+                    errors["worker_name"] = "Rental worker name is required."
+
+                if not self.login_time:
+                    errors["login_time"] = "Login time is required."
+
+                if not self.logout_time:
+                    errors["logout_time"] = "Logout time is required."
+
+            elif self.external_source_type == self.EXTERNAL_SOURCE_SUBCONTRACTOR:
+                if not self.external_source_name:
+                    errors["external_source_name"] = "Subcontractor name is required."
+
+                if not self.trade_work_type:
+                    errors["trade_work_type"] = "Trade / work type is required."
+
+                if self.number_of_workers in [None, ""]:
+                    errors["number_of_workers"] = "Workers count is required."
+
+        if errors:
+            raise ValidationError(errors)
 
     def __str__(self):
-        return self.worker_name or "Worker Entry"
+        if self.entry_type == self.ENTRY_TYPE_RD_WORKER:
+            return self.worker.name if self.worker else "RD Worker"
 
+        if self.external_source_type == self.EXTERNAL_SOURCE_RENTAL:
+            return self.worker_name or "Rental Worker"
 
+        if self.external_source_type == self.EXTERNAL_SOURCE_SUBCONTRACTOR:
+            return f"{self.external_source_name} - {self.number_of_workers or 0} workers"
+
+        return "External Labor"
 class EquipmentUsage(models.Model):
     daily_report = models.ForeignKey(
         DailyReport,

@@ -723,3 +723,39 @@ textarea.form-control,
     font-weight: 750;
     white-space: nowrap;
 }
+
+/* Compact repeated Daily Report entries */
+[data-formset-container] [data-formset-row] {
+    padding: 14px 16px !important;
+    margin-bottom: 12px !important;
+}
+
+[data-formset-container] [data-formset-row] .row {
+    row-gap: 10px !important;
+}
+
+[data-formset-container] [data-formset-row] .form-label {
+    font-size: 12px !important;
+    margin-bottom: 4px !important;
+    font-weight: 700;
+}
+
+[data-formset-container] [data-formset-row] input,
+[data-formset-container] [data-formset-row] select,
+[data-formset-container] [data-formset-row] textarea {
+    min-height: 38px !important;
+    font-size: 13px !important;
+}
+
+[data-formset-container] [data-formset-row] textarea {
+    min-height: 38px !important;
+}
+
+[data-formset-container] .rd-attachment-box,
+[data-formset-container] .bg-light {
+    padding: 8px 12px !important;
+}
+
+[data-formset-container] [data-formset-row] + [data-formset-row] {
+    border-top: 3px solid #b98246 !important;
+}

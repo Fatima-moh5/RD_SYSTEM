@@ -168,65 +168,115 @@
                             <div class="work-panel">
                                 <div class="subsection-heading green d-flex justify-content-between align-items-center">
                                     <div><span class="status-dot green"></span> Active Works</div>
-                                    <button type="button" class="btn btn-sm btn-rd-outline" data-formset-add="work">
-                                        <i class="bi bi-plus-circle me-1"></i>Add Active Work
+                                    <button
+                                        type="button"
+                                        class="btn btn-sm btn-rd-outline"
+                                        data-formset-add="work">
+                                        <i class="bi bi-plus-circle me-1"></i>
+                                        Add Activity
                                     </button>
+
                                 </div>
+
+                                {% if work_progress_history %}
+                                    <div class="table-responsive mb-3">
+                                        <table class="table table-sm table-bordered align-middle mb-0">
+                                            <thead class="table-light">
+                                                <tr>
+                                                    <th style="width: 18%;">Code</th>
+                                                    <th>Description</th>
+                                                    <th style="width: 14%;">Floor</th>
+                                                    <th style="width: 10%;">Qty</th>
+                                                    <th style="width: 10%;">Unit</th>
+                                                    <th>Notes</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% for item in work_progress_history %}
+                                                    <tr>
+                                                        <td>{{ item.master_code|default:"-" }}</td>
+                                                        <td>{{ item.description|default:"-" }}</td>
+                                                        <td>{{ item.project_area|default:"-" }}</td>
+                                                        <td>{{ item.quantity|default:"-" }}</td>
+                                                        <td>{{ item.unit|default:"-" }}</td>
+                                                        <td>{{ item.notes|default:"-" }}</td>
+                                                    </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                {% else %}
+                                    <div class="alert alert-light border mb-3">
+                                        No Active Works saved yet. Fill the current entry below and click Save Draft.
+                                    </div>
+                                {% endif %}
 
                                 {{ work_progress_formset.management_form }}
 
                                 <div data-formset-container="work">
                                     {% for row in work_progress_formset %}
-                                        <div class="entry-card mb-3" data-formset-row>
-                                            {% for hidden in row.hidden_fields %}{{ hidden }}{% endfor %}
+                                        {% if forloop.first %}
+                                            <div class="entry-card mb-3" data-formset-row>
+                                                {% for hidden in row.hidden_fields %}{{ hidden }}{% endfor %}
 
-                                            <div class="row g-3">
-                                                <div class="col-12 col-lg-5">
-                                                    <label class="form-label">Master Code</label>
-                                                    <div class="d-none">{{ row.master_code }}</div>
-                                                    <div class="master-code-picker">
-                                                        <input type="text" class="form-control master-code-display" data-selected-code-display placeholder="No code selected" readonly>
-                                                        <button type="button" class="btn btn-sm btn-rd-outline master-code-button" data-bs-toggle="modal" data-bs-target="#generateCodeModal" data-open-master-code-modal>
-                                                            <i class="bi bi-search me-1"></i>Search
-                                                        </button>
+                                                {% if row.non_field_errors %}
+                                                    <div class="alert alert-danger">{{ row.non_field_errors }}</div>
+                                                {% endif %}
+
+                                                <div class="row g-3">
+                                                    <div class="col-12 col-lg-5">
+                                                        <label class="form-label">Master Code</label>
+                                                        <div class="d-none">{{ row.master_code }}</div>
+                                                        {{ row.master_code.errors }}
+                                                        <div class="master-code-picker">
+                                                            <input type="text" class="form-control master-code-display" data-selected-code-display placeholder="No code selected" readonly>
+                                                            <button type="button" class="btn btn-sm btn-rd-outline master-code-button" data-bs-toggle="modal" data-bs-target="#generateCodeModal" data-open-master-code-modal>
+                                                                <i class="bi bi-search me-1"></i>Search
+                                                            </button>
+                                                        </div>
                                                     </div>
-                                                </div>
 
-                                                <div class="col-12 col-lg-5">
-                                                    <label class="form-label">Code Description</label>
-                                                    {{ row.description }}
-                                                </div>
+                                                    <div class="col-12 col-lg-5">
+                                                        <label class="form-label">Code Description</label>
+                                                        {{ row.description }}
+                                                        {{ row.description.errors }}
+                                                    </div>
 
-                                                <div class="col-12 col-lg-2">
-                                                    <label class="form-label">Floor</label>
-                                                    {{ row.project_area }}
-                                                </div>
+                                                    <div class="col-12 col-lg-2">
+                                                        <label class="form-label">Floor</label>
+                                                        {{ row.project_area }}
+                                                        {{ row.project_area.errors }}
+                                                    </div>
 
-                                                <div class="col-6 col-lg-2">
-                                                    <label class="form-label">Quantity</label>
-                                                    {{ row.quantity }}
-                                                </div>
+                                                    <div class="col-6 col-lg-2">
+                                                        <label class="form-label">Quantity</label>
+                                                        {{ row.quantity }}
+                                                        {{ row.quantity.errors }}
+                                                    </div>
 
-                                                <div class="col-6 col-lg-2">
-                                                    <label class="form-label">Unit</label>
-                                                    {{ row.unit }}
-                                                </div>
+                                                    <div class="col-6 col-lg-2">
+                                                        <label class="form-label">Unit</label>
+                                                        {{ row.unit }}
+                                                        {{ row.unit.errors }}
+                                                    </div>
 
-                                                <div class="col-12 col-lg-8">
-                                                    <label class="form-label">Notes</label>
-                                                    {{ row.notes }}
-                                                </div>
+                                                    <div class="col-12 col-lg-8">
+                                                        <label class="form-label">Notes</label>
+                                                        {{ row.notes }}
+                                                        {{ row.notes.errors }}
+                                                    </div>
 
-                                                <div class="col-12">
-                                                    <div class="p-2 border rounded bg-light rd-attachment-box">
-                                                        <label class="form-label mb-1">
-                                                            <i class="bi bi-paperclip me-1"></i>Active Work Attachments
-                                                        </label>
-                                                        <input type="file" name="work_progress_attachments_{{ row.prefix }}" class="form-control form-control-sm" multiple>
+                                                    <div class="col-12">
+                                                        <div class="p-2 border rounded bg-light rd-attachment-box">
+                                                            <label class="form-label mb-1">
+                                                                <i class="bi bi-paperclip me-1"></i>Active Work Attachments
+                                                            </label>
+                                                            <input type="file" name="work_progress_attachments_{{ row.prefix }}" class="form-control form-control-sm" multiple>
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>
-                                        </div>
+                                        {% endif %}
                                     {% endfor %}
                                 </div>
                             </div>
@@ -471,14 +521,19 @@
 
                             <div data-formset-container="workforce">
                                 {% for row in workforce_formset %}
-                                    <div class="entry-card mb-3" data-formset-row>
+                                    <div class="entry-card mb-3 workforce-row" data-formset-row>
                                         {% for hidden in row.hidden_fields %}{{ hidden }}{% endfor %}
 
-                                        <div class="row g-3 workforce-grid">
+                                        {% if row.non_field_errors %}
+                                            <div class="alert alert-danger">{{ row.non_field_errors }}</div>
+                                        {% endif %}
+
+                                        <div class="row g-3">
                                             <div class="col-12 col-lg-4">
                                                 <label class="form-label">Master Code</label>
                                                 <div class="d-none">{{ row.master_code }}</div>
-                                                <div class="master-code-picker mb-0">
+                                                {{ row.master_code.errors }}
+                                                <div class="master-code-picker">
                                                     <input type="text" class="form-control master-code-display" data-selected-code-display placeholder="No code selected" readonly>
                                                     <button type="button" class="btn btn-sm btn-rd-outline master-code-button" data-bs-toggle="modal" data-bs-target="#generateCodeModal" data-open-master-code-modal>
                                                         <i class="bi bi-search me-1"></i>Search
@@ -487,49 +542,78 @@
                                             </div>
 
                                             <div class="col-12 col-lg-4">
-                                                <label class="form-label">Previous Worker / Select Existing</label>
-                                                {{ row.worker }}
-                                            </div>
-
-                                            <div class="col-12 col-lg-4">
-                                                <label class="form-label">Worker Name</label>
-                                                {{ row.worker_name }}
-                                            </div>
-
-                                            <div class="col-12 col-lg-4">
-                                                <label class="form-label">Worker Source</label>
-                                                {{ row.worker_source }}
-                                            </div>
-
-                                            <div class="col-12 col-lg-4">
-                                                <label class="form-label">Company / Workshop / Subcontractor</label>
-                                                {{ row.company_name }}
+                                                <label class="form-label">Labor Type</label>
+                                                <select class="form-select workforce-labor-type-ui">
+                                                    <option value="rd_worker">RD Worker</option>
+                                                    <option value="rental">By Rent</option>
+                                                    <option value="subcontractor">Subcontractor</option>
+                                                </select>
+                                                <div class="d-none">
+                                                    {{ row.entry_type }}
+                                                    {{ row.external_source_type }}
+                                                </div>
+                                                {{ row.entry_type.errors }}
+                                                {{ row.external_source_type.errors }}
                                             </div>
 
                                             <div class="col-12 col-lg-4">
                                                 <label class="form-label">Skill Level</label>
                                                 {{ row.skill_level }}
+                                                {{ row.skill_level.errors }}
                                             </div>
 
-                                            <div class="col-6 col-lg-2">
-                                                <label class="form-label">Basic Hours</label>
-                                                {{ row.normal_hours }}
+                                            <div class="col-12 col-lg-4 workforce-rd-box">
+                                                <label class="form-label">Worker Name (RD List)</label>
+                                                {{ row.worker }}
+                                                {{ row.worker.errors }}
                                             </div>
 
-                                            <div class="col-6 col-lg-2">
-                                                <label class="form-label">Overtime Hours</label>
-                                                {{ row.overtime_hours }}
+                                            <div class="col-12 col-lg-4 workforce-rental-box">
+                                                <label class="form-label">Worker Name</label>
+                                                {{ row.worker_name }}
+                                                {{ row.worker_name.errors }}
                                             </div>
 
-                                            <div class="col-12 col-lg-4">
+                                            <div class="col-12 col-lg-4 workforce-source-box">
+                                                <label class="form-label">Company / Source Name</label>
+                                                {{ row.external_source_name }}
+                                                {{ row.external_source_name.errors }}
+                                            </div>
+
+                                            <div class="col-12 col-lg-4 workforce-subcontractor-box">
+                                                <label class="form-label">Trade / Work Type</label>
+                                                {{ row.trade_work_type }}
+                                                {{ row.trade_work_type.errors }}
+                                            </div>
+
+                                            <div class="col-12 col-lg-4 workforce-subcontractor-box">
+                                                <label class="form-label">Workers Count</label>
+                                                {{ row.number_of_workers }}
+                                                {{ row.number_of_workers.errors }}
+                                            </div>
+
+                                            <div class="col-12 col-lg-3 workforce-time-box">
+                                                <label class="form-label">Login Time</label>
+                                                {{ row.login_time }}
+                                                {{ row.login_time.errors }}
+                                            </div>
+
+                                            <div class="col-12 col-lg-3 workforce-time-box">
+                                                <label class="form-label">Logout Time</label>
+                                                {{ row.logout_time }}
+                                                {{ row.logout_time.errors }}
+                                            </div>
+
+                                            <div class="col-12 col-lg-6">
                                                 <label class="form-label">Notes</label>
                                                 {{ row.notes }}
+                                                {{ row.notes.errors }}
                                             </div>
 
-                                            <div class="col-12 col-lg-4">
-                                                <div class="rd-attachment-box h-100">
+                                            <div class="col-12">
+                                                <div class="p-2 border rounded bg-light rd-attachment-box">
                                                     <label class="form-label mb-1">
-                                                        <i class="bi bi-paperclip me-1"></i>Worker Attachments
+                                                        <i class="bi bi-paperclip me-1"></i>Workforce Attachments
                                                     </label>
                                                     <input type="file" name="workforce_attachments_{{ row.prefix }}" class="form-control form-control-sm" multiple>
                                                 </div>

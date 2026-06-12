@@ -131,57 +131,76 @@ class WorkforceEntryForm(forms.ModelForm):
 
         fields = [
             "master_code",
+            "entry_type",
             "worker",
             "worker_name",
-            "worker_source",
-            "company_name",
+            "login_time",
+            "logout_time",
+            "sent_to_other_project",
+            "external_source_type",
+            "external_source_name",
+            "trade_work_type",
+            "number_of_workers",
             "skill_level",
-            "normal_hours",
-            "overtime_hours",
             "notes",
         ]
 
         widgets = {
             "master_code": forms.Select(attrs={"class": "form-select"}),
-            "worker": forms.Select(attrs={"class": "form-select"}),
+            "entry_type": forms.Select(attrs={"class": "form-select workforce-entry-type"}),
 
-            "worker_name": forms.TextInput(
-                attrs={"class": "form-control"}
-            ),
+            "worker": forms.Select(attrs={"class": "form-select workforce-rd-field"}),
 
-            "worker_source": forms.Select(
-                attrs={"class": "form-select"}
-            ),
+            "worker_name": forms.TextInput(attrs={
+                "class": "form-control workforce-rental-field",
+                "placeholder": "Rental worker name",
+            }),
 
-            "company_name": forms.TextInput(
-                attrs={"class": "form-control"}
-            ),
+            "login_time": forms.TimeInput(attrs={
+                "type": "time",
+                "class": "form-control workforce-time-field",
+            }),
 
-            "skill_level": forms.Select(
-                attrs={"class": "form-select"}
-            ),
+            "logout_time": forms.TimeInput(attrs={
+                "type": "time",
+                "class": "form-control workforce-time-field",
+            }),
 
-            "normal_hours": forms.NumberInput(
-                attrs={
-                    "class": "form-control",
-                    "step": "0.01",
-                }
-            ),
+            "sent_to_other_project": forms.CheckboxInput(attrs={
+                "class": "form-check-input workforce-rd-field",
+            }),
 
-            "overtime_hours": forms.NumberInput(
-                attrs={
-                    "class": "form-control",
-                    "step": "0.01",
-                }
-            ),
+            "external_source_type": forms.Select(attrs={
+                "class": "form-select workforce-external-type",
+            }),
 
-            "notes": forms.Textarea(
-                attrs={
-                    "class": "form-control",
-                    "rows": 1,
-                }
-            ),
+            "external_source_name": forms.TextInput(attrs={
+                "class": "form-control workforce-external-name",
+                "placeholder": "Rental company or subcontractor name",
+            }),
+
+            "trade_work_type": forms.TextInput(attrs={
+                "class": "form-control workforce-subcontractor-field",
+                "placeholder": "Example: Plaster, Painting, Block work",
+            }),
+
+            "number_of_workers": forms.NumberInput(attrs={
+                "class": "form-control workforce-subcontractor-field",
+                "min": "1",
+            }),
+
+            "skill_level": forms.Select(attrs={"class": "form-select"}),
+
+            "notes": forms.Textarea(attrs={
+                "class": "form-control",
+                "rows": 1,
+            }),
         }
+
+    def clean(self):
+        # Model-level WorkforceEntry.clean() already contains the final validation rules.
+        # Keeping validation in one place prevents duplicate error messages in the UI.
+        return super().clean()
 
 WorkforceEntryFormSet = inlineformset_factory(
     DailyReport,
