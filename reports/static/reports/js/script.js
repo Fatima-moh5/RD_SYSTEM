@@ -1,8 +1,6 @@
 document.addEventListener("DOMContentLoaded", function () {
     initializeFormControls();
     initializeDynamicFormsets();
-    initializeMasterCodePicker();
-    initializeWorkforceVisibility();
 });
 
 function initializeFormControls(scope = document) {
@@ -33,20 +31,43 @@ function initializeDynamicFormsets() {
 
 function addFormsetRow(sectionKey) {
     const container = document.querySelector(`[data-formset-container="${sectionKey}"]`);
-    if (!container) return;
+    if (!container) {
+        console.error("Missing formset container:", sectionKey);
+        return;
+    }
 
-    const rows = Array.from(container.querySelectorAll("[data-formset-row]"));
-    if (!rows.length) return;
+    const activeRows = Array.from(container.querySelectorAll("[data-formset-row]"))
+        .filter(row => row.style.display !== "none");
 
-    const currentRow = rows[rows.length - 1];
+    if (!activeRows.length) {
+        console.error("No active row found:", sectionKey);
+        return;
+    }
+
+    const currentRow = activeRows[activeRows.length - 1];
     const formPrefix = detectFormPrefix(currentRow);
-    if (!formPrefix) return;
+
+    if (!formPrefix) {
+        console.error("Cannot detect form prefix:", sectionKey);
+        return;
+    }
 
     const totalFormsInput = document.querySelector(`input[name="${formPrefix}-TOTAL_FORMS"]`);
-    if (!totalFormsInput) return;
+
+    if (!totalFormsInput) {
+        console.error("TOTAL_FORMS not found:", formPrefix);
+        return;
+    }
 
     const newIndex = parseInt(totalFormsInput.value, 10);
+
     const newRow = currentRow.cloneNode(true);
+
+    const historyCard = buildHistoryCard(currentRow, sectionKey);
+
+    container.insertBefore(historyCard, currentRow);
+
+    currentRow.style.display = "none";
 
     updateIndexes(newRow, formPrefix, newIndex);
     clearNewRow(newRow);
@@ -56,11 +77,10 @@ function addFormsetRow(sectionKey) {
 
     initializeFormControls(newRow);
 
-    if (sectionKey === "workforce") {
-        setTimeout(function () {
-            initializeWorkforceVisibility();
-        }, 50);
-    }
+    newRow.scrollIntoView({
+        behavior: "smooth",
+        block: "center"
+    });
 }
 
 function detectFormPrefix(row) {
@@ -86,6 +106,8 @@ function updateIndexes(row, formPrefix, newIndex) {
 }
 
 function clearNewRow(row) {
+    row.style.display = "";
+
     row.querySelectorAll("input, select, textarea").forEach(function (field) {
         if (field.type === "hidden" && field.name && field.name.endsWith("-id")) {
             field.value = "";
@@ -107,11 +129,6 @@ function clearNewRow(row) {
             return;
         }
 
-        if (field.classList.contains("workforce-labor-type-ui")) {
-            field.value = "rd_worker";
-            return;
-        }
-
         if (field.tagName.toLowerCase() === "select") {
             field.selectedIndex = 0;
             return;
@@ -121,126 +138,115 @@ function clearNewRow(row) {
     });
 }
 
-function initializeMasterCodePicker() {
-    let activeRow = null;
-    let selectedCode = null;
+function buildHistoryCard(row, sectionKey) {
+    const card = document.createElement("div");
+    card.className = "history-summary mb-3";
 
-    document.addEventListener("click", function (event) {
-        const openButton = event.target.closest("[data-open-master-code-modal]");
-        if (openButton) {
-            activeRow = openButton.closest("[data-formset-row]");
-            selectedCode = null;
-            renderMasterCodeResults();
-        }
-
-        const resultButton = event.target.closest("[data-master-code-result]");
-        if (resultButton) {
-            selectedCode = {
-                id: resultButton.dataset.id,
-                code: resultButton.dataset.code,
-                description: resultButton.dataset.description || ""
-            };
-
-            document.getElementById("generatedCodePreview").textContent = selectedCode.code;
-            document.getElementById("useGeneratedCodeButton").disabled = false;
-        }
-
-        const useButton = event.target.closest("#useGeneratedCodeButton");
-        if (useButton && activeRow && selectedCode) {
-            const hiddenSelect = activeRow.querySelector("select[name$='-master_code']");
-            const displayInput = activeRow.querySelector("[data-selected-code-display]");
-            const descriptionField = activeRow.querySelector("[name$='-description']");
-
-            if (hiddenSelect) {
-                hiddenSelect.value = selectedCode.id;
-                hiddenSelect.dispatchEvent(new Event("change", { bubbles: true }));
-            }
-
-            if (displayInput) {
-                displayInput.value = selectedCode.code;
-            }
-
-            if (descriptionField && !descriptionField.value) {
-                descriptionField.value = selectedCode.description;
-            }
-
-            activeRow = null;
-            selectedCode = null;
-        }
+    getSummaryValues(row, sectionKey).forEach(function (item) {
+        const cell = document.createElement("div");
+        cell.className = "history-cell";
+        cell.innerHTML = `
+            <span>${item.label}</span>
+            <strong>${item.value || "-"}</strong>
+        `;
+        card.appendChild(cell);
     });
 
-    const searchInput = document.getElementById("masterCodeSearchInput");
-    const phaseSelect = document.getElementById("modalProjectPhase");
-    const categorySelect = document.getElementById("modalCategory");
-    const subcategorySelect = document.getElementById("modalSubcategory");
-
-    [searchInput, phaseSelect, categorySelect, subcategorySelect].forEach(function (field) {
-        if (field) {
-            field.addEventListener("input", renderMasterCodeResults);
-            field.addEventListener("change", renderMasterCodeResults);
-        }
-    });
+    return card;
 }
 
-function renderMasterCodeResults() {
-    const resultsBox = document.getElementById("masterCodeResults");
-    if (!resultsBox) return;
+function getSummaryValues(row, sectionKey) {
+    function getValue(selector) {
+        const field = row.querySelector(selector);
+        if (!field) return "";
 
-    const searchValue = (document.getElementById("masterCodeSearchInput")?.value || "").toLowerCase();
-    const phaseValue = document.getElementById("modalProjectPhase")?.value || "";
-    const categoryValue = document.getElementById("modalCategory")?.value || "";
-    const subcategoryValue = document.getElementById("modalSubcategory")?.value || "";
+        if (field.hasAttribute("data-selected-code-display")) {
+            return field.value || "";
+        }
 
-    const allCodes = Array.from(document.querySelectorAll("[data-master-code]"));
+        if (field.tagName.toLowerCase() === "select") {
+            return field.options[field.selectedIndex]?.text || "";
+        }
 
-    resultsBox.innerHTML = "";
-
-    const filteredCodes = allCodes.filter(function (item) {
-        const text = (
-            item.dataset.code + " " +
-            item.dataset.description + " " +
-            item.dataset.phaseName + " " +
-            item.dataset.categoryName + " " +
-            item.dataset.subcategoryName
-        ).toLowerCase();
-
-        if (searchValue && !text.includes(searchValue)) return false;
-        if (phaseValue && item.dataset.phase !== phaseValue) return false;
-        if (categoryValue && item.dataset.category !== categoryValue) return false;
-        if (subcategoryValue && item.dataset.subcategory !== subcategoryValue) return false;
-
-        return true;
-    });
-
-    filteredCodes.slice(0, 50).forEach(function (item) {
-        const button = document.createElement("button");
-        button.type = "button";
-        button.className = "btn btn-light text-start border";
-        button.setAttribute("data-master-code-result", "true");
-        button.dataset.id = item.dataset.id;
-        button.dataset.code = item.dataset.code;
-        button.dataset.description = item.dataset.description || "";
-
-        button.innerHTML = `
-            <strong>${item.dataset.code}</strong>
-            <div class="small text-muted">${item.dataset.description || ""}</div>
-        `;
-
-        resultsBox.appendChild(button);
-    });
-
-    if (!filteredCodes.length) {
-        resultsBox.innerHTML = `<div class="alert alert-warning mb-0">No matching master codes found.</div>`;
+        return field.value || "";
     }
 
-    const preview = document.getElementById("generatedCodePreview");
-    const useButton = document.getElementById("useGeneratedCodeButton");
+    if (sectionKey === "work") {
+        return [
+            { label: "Code", value: getValue("[data-selected-code-display]") },
+            { label: "Description", value: getValue("[name$='-description']") },
+            { label: "Floor", value: getValue("[name$='-project_area']") },
+            { label: "Qty", value: getValue("[name$='-quantity']") }
+        ];
+    }
 
-    if (preview) preview.textContent = "No code selected";
-    if (useButton) useButton.disabled = true;
+    if (sectionKey === "blocked") {
+        return [
+            { label: "Code", value: getValue("[data-selected-code-display]") },
+            { label: "Issue", value: getValue("[name$='-issue']") },
+            { label: "Reason", value: getValue("[name$='-reason']") }
+        ];
+    }
+
+    if (sectionKey === "visits") {
+        return [
+            { label: "Visitor", value: getValue("[name$='-visitor_name']") },
+            { label: "Entity", value: getValue("[name$='-visitor_entity']") },
+            { label: "Time", value: getValue("[name$='-visit_time']") }
+        ];
+    }
+
+if (sectionKey === "workforce") {
+    const laborType = getValue(".workforce-labor-type-ui");
+
+    let workerLabel = "Worker";
+    let workerValue = "";
+
+    if (laborType === "RD Worker") {
+        workerValue = getValue("[name$='-worker']");
+    } else if (laborType === "By Rent") {
+        workerValue = getValue("[name$='-worker_name']");
+    } else {
+        workerLabel = "Subcontractor";
+        workerValue = getValue("[name$='-external_source_name']");
+    }
+
+    return [
+        { label: "Labor", value: laborType },
+        { label: workerLabel, value: workerValue },
+        { label: "Skill", value: getValue("[name$='-skill_level']") },
+        { label: "Time", value: getValue("[name$='-login_time']") + " - " + getValue("[name$='-logout_time']") }
+    ];
 }
 
-/* WORKFORCE LOGIC */
+    if (sectionKey === "equipment") {
+        return [
+            { label: "Equipment", value: getValue("[name$='-equipment']") },
+            { label: "Qty", value: getValue("[name$='-quantity']") },
+            { label: "Working", value: getValue("[name$='-working_hours']") }
+        ];
+    }
+
+    if (sectionKey === "materials") {
+        return [
+            { label: "Material", value: getValue("[name$='-material_name']") },
+            { label: "Qty", value: getValue("[name$='-quantity']") },
+            { label: "Supplier", value: getValue("[name$='-supplier']") }
+        ];
+    }
+
+    return [{ label: "Entry", value: "Added" }];
+}
+
+function escapeRegExp(string) {
+    return string.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+/* Workforce RD / Rental / Subcontractor visibility */
+document.addEventListener("DOMContentLoaded", function () {
+    initializeWorkforceVisibility();
+});
+
 document.addEventListener("change", function (event) {
     if (event.target.matches(".workforce-labor-type-ui")) {
         const row = event.target.closest("[data-formset-row]");
@@ -256,8 +262,6 @@ function initializeWorkforceVisibility() {
 }
 
 function initializeWorkforceLaborTypeValue(row) {
-    if (!row) return;
-
     const laborTypeUi = row.querySelector(".workforce-labor-type-ui");
     const entryType = row.querySelector("select[name$='-entry_type']");
     const externalType = row.querySelector("select[name$='-external_source_type']");
@@ -305,20 +309,19 @@ function updateWorkforceRowVisibility(row) {
     const isRental = laborValue === "rental";
     const isSubcontractor = laborValue === "subcontractor";
 
-    toggleBoxes(row, ".workforce-rd-box", isRD);
-    toggleBoxes(row, ".workforce-rental-box", isRental);
-    toggleBoxes(row, ".workforce-source-box", isRental || isSubcontractor);
-    toggleBoxes(row, ".workforce-subcontractor-box", isSubcontractor);
-    toggleBoxes(row, ".workforce-time-box", isRD || isRental);
+    toggleWorkforceBoxes(row, ".workforce-rd-box", isRD);
+    toggleWorkforceBoxes(row, ".workforce-rental-box", isRental);
+    toggleWorkforceBoxes(row, ".workforce-source-box", isRental || isSubcontractor);
+    toggleWorkforceBoxes(row, ".workforce-subcontractor-box", isSubcontractor);
+    toggleWorkforceBoxes(row, ".workforce-time-box", isRD || isRental);
 }
 
-function toggleBoxes(row, selector, show) {
+function toggleWorkforceBoxes(row, selector, show) {
     row.querySelectorAll(selector).forEach(function (box) {
         box.style.display = show ? "" : "none";
 
         box.querySelectorAll("input, select, textarea").forEach(function (field) {
             if (field.type === "file") return;
-
             if (show) {
                 field.removeAttribute("disabled");
             } else {
@@ -326,8 +329,4 @@ function toggleBoxes(row, selector, show) {
             }
         });
     });
-}
-
-function escapeRegExp(string) {
-    return string.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
