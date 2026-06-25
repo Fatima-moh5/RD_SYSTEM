@@ -4,7 +4,7 @@ from decimal import Decimal, InvalidOperation
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
-from django.db import transaction
+from django.db import transaction, IntegrityError
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 
@@ -353,8 +353,8 @@ def validate_daily_report_for_action(form, formsets, action):
 
         if formset_has_data(formset) and not formset.is_valid():
             errors.append(
-                f"{get_formset_friendly_name(key)} has incomplete information. "
-                f"Please complete the entered row or leave the section empty."
+                f"{get_formset_friendly_name(key)} has incomplete information: "
+                f"{formset.errors} {formset.non_form_errors()}"
             )
 
     if errors:
@@ -600,7 +600,6 @@ def daily_report_list(request):
 
 @login_required
 @transaction.atomic
-
 def daily_report_create(request):
     assigned_projects = get_assigned_projects(
         request.user,
@@ -648,6 +647,7 @@ def daily_report_create(request):
         )
 
         action = request.POST.get("action", "draft")
+
         is_ready, validation_errors = validate_daily_report_for_action(
             form=form,
             formsets=formsets,
@@ -672,7 +672,35 @@ def daily_report_create(request):
             except Exception:
                 pass
 
-            report.save()
+            existing_report = DailyReport.objects.filter(
+                project=report.project,
+                reference_date=report.reference_date,
+                created_by=request.user,
+            ).first()
+
+            if existing_report:
+                messages.warning(
+                    request,
+                    "A Daily Report already exists for this project and date. "
+                    "The existing report has been opened."
+                )
+                return redirect("daily_report_edit", pk=existing_report.pk)
+
+            try:
+                report.save()
+            except IntegrityError:
+                existing_report = DailyReport.objects.get(
+                    project=report.project,
+                    reference_date=report.reference_date,
+                    created_by=request.user,
+                )
+
+                messages.warning(
+                    request,
+                    "A Daily Report already exists for this project and date. "
+                    "The existing report has been opened."
+                )
+                return redirect("daily_report_edit", pk=existing_report.pk)
 
             formsets = build_formsets(
                 data=request.POST,

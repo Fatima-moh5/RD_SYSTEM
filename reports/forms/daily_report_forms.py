@@ -10,8 +10,17 @@ from reports.models import (
     WorkforceEntry,
     EquipmentUsage,
     MaterialReceipt,
+    LookupItem,
+    WorkerProfile,
 )
-
+def lookup_choices(list_type):
+    return [("", "---------")] + [
+        (item.value, item.value)
+        for item in LookupItem.objects.filter(
+            list_type=list_type,
+            is_active=True
+        ).order_by("sort_order", "value")
+    ]
 
 class DailyReportForm(forms.ModelForm):
     class Meta:
@@ -196,6 +205,19 @@ class WorkforceEntryForm(forms.ModelForm):
                 "rows": 1,
             }),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.fields["worker"].queryset = WorkerProfile.objects.filter(
+            worker_source="RD",
+            is_active=True
+        ).order_by("name")
+
+        self.fields["worker"].empty_label = "Select RD worker"
+
+        self.fields["skill_level"].choices = lookup_choices("skill_level")
+        self.fields["external_source_type"].choices = lookup_choices("workforce")
 
     def clean(self):
         # Model-level WorkforceEntry.clean() already contains the final validation rules.

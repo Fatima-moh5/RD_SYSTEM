@@ -173,9 +173,41 @@
                                     </button>
                                 </div>
 
-                                {{ work_progress_formset.management_form }}
+                                    {{ work_progress_formset.management_form }}
 
-                                <div data-formset-container="work">
+                                    {% if work_progress_history %}
+                                        <div class="mb-3">
+                                            <div class="fw-bold mb-2">Saved Active Works</div>
+                                            <div class="table-responsive">
+                                                <table class="table table-sm table-bordered align-middle">
+                                                    <thead>
+                                                        <tr>
+                                                            <th>Master Code</th>
+                                                            <th>Description</th>
+                                                            <th>Floor</th>
+                                                            <th>Quantity</th>
+                                                            <th>Unit</th>
+                                                            <th>Notes</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        {% for item in work_progress_history %}
+                                                            <tr>
+                                                                <td>{% if item.master_code %}{{ item.master_code.code }}{% else %}-{% endif %}</td>
+                                                                <td>{{ item.description|default:"-" }}</td>
+                                                                <td>{% if item.project_area %}{{ item.project_area }}{% else %}-{% endif %}</td>
+                                                                <td>{{ item.quantity|default:"-" }}</td>
+                                                                <td>{{ item.unit|default:"-" }}</td>
+                                                                <td>{{ item.notes|default:"-" }}</td>
+                                                            </tr>
+                                                        {% endfor %}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    {% endif %}
+
+                                    <div data-formset-container="work">
                                     {% for row in work_progress_formset %}
                                         <div class="entry-card mb-3" data-formset-row>
                                             {% for hidden in row.hidden_fields %}{{ hidden }}{% endfor %}

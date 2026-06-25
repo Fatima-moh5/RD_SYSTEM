@@ -35,7 +35,7 @@ class DailyReportAttachmentAdmin(admin.ModelAdmin):
     ordering = (
         "-uploaded_at",
     )
-    
+
     @admin.register(UserActivityLog)
     class UserActivityLogAdmin(admin.ModelAdmin):
 
@@ -64,3 +64,4 @@ class DailyReportAttachmentAdmin(admin.ModelAdmin):
         ordering = (
             "-created_at",
         )
+from reports.models import WorkerProfile

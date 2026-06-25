@@ -330,3 +330,16 @@ function toggleWorkforceBoxes(row, selector, show) {
         });
     });
 }
+document.addEventListener("submit", function () {
+    document
+        .querySelectorAll("[data-formset-container='workforce'] [data-formset-row]")
+        .forEach(function (row) {
+            updateWorkforceRowVisibility(row);
+
+            row.querySelectorAll(
+                "select[name$='-entry_type'], select[name$='-external_source_type']"
+            ).forEach(function (field) {
+                field.removeAttribute("disabled");
+            });
+        });
+});
